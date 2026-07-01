@@ -6,6 +6,7 @@ attitude_quat LX_quat;
 pwm_value pwm_to_esc;
 raw_speed_union current_speed;
 altitude_option_un altitude_of_option;
+Gyro_Sensor Gyro_acc_sense;
 
 static u8 rx_Buffer[256];
 static u8 Data_cnt = 0;
@@ -50,6 +51,7 @@ void Data_Init(void)
     Data.fun[0xE2].count_mstime = 0;   
 }
 
+//接收数据组包并发送
 void H743_Data_Receive(u8 data)
 {
     static u8 Data_len = 0, payload_cnt = 0;
@@ -93,12 +95,33 @@ void H743_Data_Receive(u8 data)
         rxstate = 0;
     }
 }
-
-static u16 get_ui6_le(const u8 *p)
+/// @brief    解析数据将其转化为合适的形式
+/// @param p 
+/// @return 
+static u16 get_u16_le(const u8 *p)
 {
-    return (u16)p[0] | 
+    return (u16)p[0] | ((u16)p[1] << 8);
 }
 
+static s16 get_s16_le(const u8 *p)
+{
+    return (s16)get_ui6_le(p);
+}
+
+static u32 get_u32_le(const u8 *p)
+{
+    return (u32)p[0] | 
+                    ((u32)p[1] << 8) | 
+                    ((u32)p[2] << 16) | 
+                    ((u32)p[3] << 24);
+}
+
+static s32 get_s32_le(const u8 *p)
+{
+    return (s32)get_u32_le(p);
+}
+//////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
 
 static void H743_Received_Data_Analysis(const u8 *data, u8 len)
 {
@@ -125,14 +148,14 @@ static void H743_Received_Data_Analysis(const u8 *data, u8 len)
     //PWM数据
     if(*(data + 2) == 0X20)
     {
-        pwm_to_esc.pwm_value1 = *((u16 *)(data + 4));
-        pwm_to_esc.pwm_value2 = *((u16 *)(data + 6));
-        pwm_to_esc.pwm_value3 = *((u16 *)(data + 8));
-        pwm_to_esc.pwm_value4 = *((u16 *)(data + 10));
-        pwm_to_esc.pwm_value5 = *((u16 *)(data + 12));
-        pwm_to_esc.pwm_value6 = *((u16 *)(data + 14));
-        pwm_to_esc.pwm_value7 = *((u16 *)(data + 16));
-        pwm_to_esc.pwm_value8 = *((u16 *)(data + 18));       
+        pwm_to_esc.pwm_value1 = get_u16_le(data + 4);
+        pwm_to_esc.pwm_value2 = get_u16_le(data + 6);
+        pwm_to_esc.pwm_value3 = get_u16_le(data + 8);
+        pwm_to_esc.pwm_value4 = get_u16_le(data + 10);
+        pwm_to_esc.pwm_value5 = get_u16_le(data + 12);
+        pwm_to_esc.pwm_value6 = get_u16_le(data + 14);
+        pwm_to_esc.pwm_value7 = get_u16_le(data + 16);
+        pwm_to_esc.pwm_value8 = get_u16_le(data + 18);       
     }
 
     //凌霄IMU发出的RGB灯光数据
@@ -170,19 +193,52 @@ static void H743_Received_Data_Analysis(const u8 *data, u8 len)
     }
 
     //传感器数据
+    else if(*(data + 2) == 0X01)
+    {
+        Gyro_acc_sense.acc_gyro_data.acc_x = get_s16_le(data + 4);
+        Gyro_acc_sense.acc_gyro_data.acc_y = get_s16_le(data + 6);
+        Gyro_acc_sense.acc_gyro_data.acc_z = get_s16_le(data + 8);
+        Gyro_acc_sense.acc_gyro_data.gyr_x = get_s16_le(data + 10);
+        Gyro_acc_sense.acc_gyro_data.gyr_y = get_s16_le(data + 12);
+        Gyro_acc_sense.acc_gyro_data.gyr_z = get_s16_le(data + 14);
+        Gyro_acc_sense.acc_gyro_data.shock_sta = *(data + 16);
+    }
     
-    // //姿态四元数
-    // if(*(data + 2) == 0x04)
-    // {
-    //     LX_quat.quat_w_10000 = *(data + 4);
-    //     LX_quat.quat_x_10000 = *(data + 5);
-    //     LX_quat.quat_y_10000 = *(data + 6);
-    //     LX_quat.quat_z_10000 = *(data + 7);
-    //     LX_quat.fusion_sta = *(data + 8);
-       
-    // } 
-    
+    //姿态四元数
+    else if(*(data + 2) == 0x04)
+    {
+        LX_quat.quat_w_10000 = get_s16_le(data + 4);
+        LX_quat.quat_x_10000 = get_s16_le(data + 6);
+        LX_quat.quat_y_10000 = get_s16_le(data + 8);
+        LX_quat.quat_z_10000 = get_s16_le(data + 10);
+        LX_quat.fusion_sta = *(data + 12);  
+    }
+    //CMD命令帧
+    else if(*(data + 2) == 0XE0)
+    {
+        switch(*(data + 4))
+        {
+            case 0X01:
+            {
+                break;
+            }
+            case 0X10:
+            {
+                break;
+            }
+            default:
+            {
+                break;
+            }
+        }
+        //飞控收到本帧后，需返回校验信息，即返回帧 ID=0x00 的校验帧。
+        Data.ack_of_chec.ID = *(data + 4);
+        Data.ack_of_chec.SC = sum1_check;
+        Data.ack_of_chec.AC = sum2_check;
 
+    }
+
+    
 }
 
 
