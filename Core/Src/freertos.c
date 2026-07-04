@@ -31,6 +31,9 @@
 #include <string.h>
 #include "Key.h"
 #include "OLED.h"
+#include "ANO_TO_H743_Data_Transmit.h"
+#include "Drv_Uart.h"
+#include "Remote_Control.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -51,6 +54,7 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
 //osSemaphoreId_t OLED_i2c_Binary_SemaphoreHandle;
+osSemaphoreId_t LX_UART_Binary_SemaphoreHandle = NULL;
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 osThreadId_t keyTaskHandle;
@@ -64,6 +68,20 @@ osThreadId_t oledTaskHandle;
 const osThreadAttr_t oledTask_attributes = {
   .name = "oledTask",
   .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+
+osThreadId_t pwmPrintTaskHandle;
+const osThreadAttr_t pwmPrintTask_attributes = {
+  .name = "pwmPrintTask",
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
+
+osThreadId_t uart4LXTaskHandle;
+const osThreadAttr_t uart4LXTask_attributes = {
+  .name = "uart4LXTask",
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 
@@ -82,6 +100,8 @@ const osThreadAttr_t oledTask_attributes = {
 void StartKeyTestTask(void *argument);
 void StartOledTestTask(void *argument);
 void StartOledTestTask(void *argument);
+void StartpwmPrintTask(void *argument);
+void Startuart4LXTask(void *argument);
 // void StartUartTestTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -102,6 +122,7 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   //OLED_i2c_Binary_SemaphoreHandle = osSemaphoreNew(1, 0, NULL);
+  LX_UART_Binary_SemaphoreHandle = osSemaphoreNew(1, 0, NULL);
   /* USER CODE END RTOS_SEMAPHORES */
 
   /* USER CODE BEGIN RTOS_TIMERS */
@@ -114,6 +135,10 @@ void MX_FREERTOS_Init(void) {
   keyTaskHandle = osThreadNew(StartKeyTestTask, NULL, &keyTask_attributes);
 
   oledTaskHandle = osThreadNew(StartOledTestTask, NULL, &oledTask_attributes);
+
+  pwmPrintTaskHandle = osThreadNew(StartpwmPrintTask, NULL, &pwmPrintTask_attributes);
+
+  uart4LXTaskHandle = osThreadNew(Startuart4LXTask, NULL, &uart4LXTask_attributes);
   /* creation of uartTestTask */
   // uartTestTaskHandle = osThreadNew(StartUartTestTask, NULL, &uartTestTask_attributes);
 
@@ -202,6 +227,48 @@ void StartOledTestTask(void *argument)
     OLED_Update();
 
     osDelay(100);  // 每 100ms 更新一次
+  }
+}
+
+void StartpwmPrintTask(void *argument)
+{
+  pwm_value pwm;
+
+  for(;;)
+  {
+    if(pwm_update_flag)
+    {
+      taskENTER_CRITICAL();
+      pwm = pwm_to_esc;
+      pwm_update_flag = 0;
+      taskEXIT_CRITICAL();
+
+      printf("pwm raw: w=%d x=%d y=%d z=%d\r\n",
+             pwm.pwm_value1,
+             pwm.pwm_value2,
+             pwm.pwm_value3,
+             pwm.pwm_value4);
+    }
+
+    osDelay(20);
+  }
+}
+
+void Startuart4LXTask(void *argument)
+{
+  (void)argument;
+
+  Data_Init();
+  DrvRcInputInit();
+  DrvUart4_Fifo_Init();
+  DrvUart4_Receive_Enable();
+
+  for(;;)
+  {
+    DrvRcInputTask(0.001f);
+    drvU4DataCheck();
+    H743_Data_Transmit_Check();
+    osDelay(1);
   }
 }
 /* USER CODE END Application */

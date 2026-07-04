@@ -63,3 +63,6 @@
 323232\freertos.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
 323232\freertos.o: .\DriversMCU\Key.h
 323232\freertos.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdbool.h
+323232\freertos.o: .\DriversMCU\OLED.h
+323232\freertos.o: .\DriversMCU\OLED_Data.h
+323232\freertos.o: .\FcSrc\ANO_TO_H743_Data_Transmit.h

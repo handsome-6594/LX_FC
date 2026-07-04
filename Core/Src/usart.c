@@ -21,6 +21,8 @@
 #include "usart.h"
 
 /* USER CODE BEGIN 0 */
+#include "Drv_Uart.h"
+#include "Remote_Control.h"
 
 /* USER CODE END 0 */
 
@@ -999,6 +1001,38 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
 }
 
 /* USER CODE BEGIN 1 */
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+  RemoteControl_UartRxCpltCallback(huart);
+}
+
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
+{
+  if(huart->Instance == UART4)
+  {
+    DrvUart4_RxEventCallback(Size);
+  }
+}
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+  if(huart->Instance == UART4)
+  {
+    DrvUart4_TxCpltCallback();
+  }
+}
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+{
+  if(huart->Instance == UART4)
+  {
+    DrvUart4_ErrorCallback();
+  }
+  else
+  {
+    RemoteControl_UartErrorCallback(huart);
+  }
+}
 
 /* USER CODE END 1 */
 

@@ -47,3 +47,6 @@
 323232\usart.o: ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_ll_usb.h
 323232\usart.o: ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_pcd_ex.h
 323232\usart.o: ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_hcd.h
+323232\usart.o: .\FcSrc\ANO_TO_H743_Data_Transmit.h
+323232\usart.o: .\FcSrc\SysConfig.h
+323232\usart.o: .\DriversMCU\Drv_led.h

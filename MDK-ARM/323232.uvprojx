@@ -314,7 +314,7 @@
           </ArmAdsMisc>
           <Cads>
             <interw>1</interw>
-            <Optim>4</Optim>
+            <Optim>1</Optim>
             <oTime>0</oTime>
             <SplitLS>0</SplitLS>
             <OneElfS>1</OneElfS>
@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>USE_PWR_LDO_SUPPLY,USE_HAL_DRIVER,STM32H743xx</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../Drivers/STM32H7xx_HAL_Driver/Inc;../Drivers/STM32H7xx_HAL_Driver/Inc/Legacy;../Middlewares/Third_Party/FreeRTOS/Source/include;../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2;../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;../Drivers/CMSIS/RTOS2/Include;../Drivers/CMSIS/Device/ST/STM32H7xx/Include;../Drivers/CMSIS/Include;.\DriversMCU;.\FcSrc</IncludePath>
+              <IncludePath>../Core/Inc;../Drivers/STM32H7xx_HAL_Driver/Inc;../Drivers/STM32H7xx_HAL_Driver/Inc/Legacy;../Middlewares/Third_Party/FreeRTOS/Source/include;../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2;../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;../Drivers/CMSIS/RTOS2/Include;../Drivers/CMSIS/Device/ST/STM32H7xx/Include;../Drivers/CMSIS/Include;.\DriversMCU;.\FcSrc;\Algorithm</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -689,6 +689,56 @@
               <FileType>1</FileType>
               <FilePath>.\DriversMCU\Drv_led.c</FilePath>
             </File>
+            <File>
+              <FileName>Drv_Uart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\DriversMCU\Drv_Uart.c</FilePath>
+            </File>
+            <File>
+              <FileName>Drv_Uart.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\DriversMCU\Drv_Uart.h</FilePath>
+            </File>
+            <File>
+              <FileName>fifo.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\DriversMCU\fifo.c</FilePath>
+            </File>
+            <File>
+              <FileName>fifo.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\DriversMCU\fifo.h</FilePath>
+            </File>
+            <File>
+              <FileName>Key.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\DriversMCU\Key.c</FilePath>
+            </File>
+            <File>
+              <FileName>Key.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\DriversMCU\Key.h</FilePath>
+            </File>
+            <File>
+              <FileName>OLED.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\DriversMCU\OLED.c</FilePath>
+            </File>
+            <File>
+              <FileName>OLED.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\DriversMCU\OLED.h</FilePath>
+            </File>
+            <File>
+              <FileName>OLED_Data.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\DriversMCU\OLED_Data.c</FilePath>
+            </File>
+            <File>
+              <FileName>OLED_Data.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\DriversMCU\OLED_Data.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -699,7 +749,70 @@
               <FileType>5</FileType>
               <FilePath>.\FcSrc\SysConfig.h</FilePath>
             </File>
+            <File>
+              <FileName>ANO_TO_H743_Data_Transmit.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\FcSrc\ANO_TO_H743_Data_Transmit.c</FilePath>
+            </File>
+            <File>
+              <FileName>ANO_TO_H743_Data_Transmit.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\FcSrc\ANO_TO_H743_Data_Transmit.h</FilePath>
+            </File>
+            <File>
+              <FileName>FC_State.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\FcSrc\FC_State.c</FilePath>
+            </File>
+            <File>
+              <FileName>FC_State.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\FcSrc\FC_State.h</FilePath>
+            </File>
+            <File>
+              <FileName>PWM.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\FcSrc\PWM.c</FilePath>
+            </File>
+            <File>
+              <FileName>PWM.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\FcSrc\PWM.h</FilePath>
+            </File>
+            <File>
+              <FileName>JetsonNano_Data_Transmit.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\FcSrc\JetsonNano_Data_Transmit.c</FilePath>
+            </File>
+            <File>
+              <FileName>JetsonNano_Data_Transmit.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\FcSrc\JetsonNano_Data_Transmit.h</FilePath>
+            </File>
+            <File>
+              <FileName>Of_Radar_Fusion.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\FcSrc\Of_Radar_Fusion.c</FilePath>
+            </File>
+            <File>
+              <FileName>Of_Radar_Fusion.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\FcSrc\Of_Radar_Fusion.h</FilePath>
+            </File>
+            <File>
+              <FileName>Remote_Control.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\FcSrc\Remote_Control.c</FilePath>
+            </File>
+            <File>
+              <FileName>Remote_Control.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\FcSrc\Remote_Control.h</FilePath>
+            </File>
           </Files>
+        </Group>
+        <Group>
+          <GroupName>Algorithm</GroupName>
         </Group>
         <Group>
           <GroupName>::CMSIS</GroupName>
