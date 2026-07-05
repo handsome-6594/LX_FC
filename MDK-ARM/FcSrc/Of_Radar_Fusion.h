@@ -1,5 +1,5 @@
 #ifndef _OF_RADAR_FUSION_H
-#define _OF_RADAR_FUAION_H
+#define _OF_RADAR_FUSION_H
 
 #include "SysConfig.h"
 
