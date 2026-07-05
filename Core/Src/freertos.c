@@ -34,6 +34,9 @@
 #include "ANO_TO_H743_Data_Transmit.h"
 #include "Drv_Uart.h"
 #include "Remote_Control.h"
+#include "RC_Channel.h"
+#include "PWM.h"
+#include "FC_State.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -233,6 +236,9 @@ void StartOledTestTask(void *argument)
 void StartpwmPrintTask(void *argument)
 {
   pwm_value pwm;
+  uint16_t print_cnt = 0;
+  uint8_t has_new_pwm = 0;
+  uint8_t last_lx_unlocked = 0;
 
   for(;;)
   {
@@ -243,14 +249,31 @@ void StartpwmPrintTask(void *argument)
       pwm_update_flag = 0;
       taskEXIT_CRITICAL();
 
-      printf("pwm raw: w=%d x=%d y=%d z=%d\r\n",
+      has_new_pwm = 1;
+    }
+
+    if(last_lx_unlocked && !state.is_unlocked)
+    {
+      RC_MotorForceLock();
+    }
+    last_lx_unlocked = state.is_unlocked;
+
+    ESC_Output(RC_MotorIsUnlocked() && state.is_unlocked);
+
+    if(has_new_pwm && ++print_cnt >= 250)
+    {
+      print_cnt = 0;
+      printf("unlock=%d lx_unlock=%d mode=%d pwm=%d %d %d %d\r\n",
+             RC_MotorIsUnlocked(),
+             state.is_unlocked,
+             state.mode,
              pwm.pwm_value1,
              pwm.pwm_value2,
              pwm.pwm_value3,
              pwm.pwm_value4);
     }
 
-    osDelay(20);
+    osDelay(2);
   }
 }
 
@@ -260,12 +283,14 @@ void Startuart4LXTask(void *argument)
 
   Data_Init();
   DrvRcInputInit();
+  DrvESCInit();
   DrvUart4_Fifo_Init();
   DrvUart4_Receive_Enable();
 
   for(;;)
   {
     DrvRcInputTask(0.001f);
+    RC_Data_Task(0.001f);
     drvU4DataCheck();
     H743_Data_Transmit_Check();
     osDelay(1);

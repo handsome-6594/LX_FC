@@ -9,16 +9,13 @@
 #include "task.h"
 #include "semphr.h"
 #include "cmsis_os2.h"
-#include "ANO_TO_H743_Data_Transmit.h"
 
+static void DrvUart_NoUse(uint8_t data)
+{
+    (void)data;
+}
 
-void NoUse(u8 data){}
-#define U1GetOneByte	NoUse
-#define U2GetOneByte	NoUse
-#define U3GetOneByte	NoUse
-#define U4GetOneByte	H743_Data_Receive      //ANO_TO_H743_Data_Transmit
-#define U5GetOneByte	NoUse
-#define U6GetOneByte    NoUse
+static DrvUartByteHandler Uart4RxByteHandler = DrvUart_NoUse;
 
 //====uart1
 /* 告知连接器不从C库链接使用半主机的函数 */
@@ -41,6 +38,7 @@ FILE __stdout;
 /*  */
 int fputc(int ch, FILE *stream)
 {
+    (void)stream;
     /* 堵塞判断串口是否发送完成 */
     while((USART1->ISR & 0X40) == 0);
  
@@ -51,8 +49,6 @@ int fputc(int ch, FILE *stream)
 }
 
 //uart4   H743通过凌霄IMU接收或发送数据
-#define RX_Buffer_Size 15
-
 //====uart4 //连接凌霄IMU
 #define LX_RXBufferSize 15
 #define LX_RXFIFOBufferSize (LX_RXBufferSize * 40)
@@ -75,6 +71,11 @@ void DrvUart4_Fifo_Init(void)
 {
     pLXfifo = &LX_fifo;
     FIFO_Init(pLXfifo, LX_RxFIFOBuffer, sizeof(uint8_t), LX_RXFIFOBufferSize);
+}
+
+void DrvUart4_RegisterRxByteHandler(DrvUartByteHandler handler)
+{
+    Uart4RxByteHandler = (handler != NULL) ? handler : DrvUart_NoUse;
 }
 
 void DrvUart4_RxEventCallback(uint16_t size)
@@ -124,7 +125,7 @@ void drvU4DataCheck(void)
             break;
         }
 
-        U4GetOneByte(data_temp);
+        Uart4RxByteHandler(data_temp);
     }
 }
 

@@ -40,6 +40,7 @@ void Data_Init(void)
 {
 
     FramePack_Init(&pack, tx_buf, 256);
+    DrvUart4_RegisterRxByteHandler(H743_Data_Receive);
 
     //电池电压数据
     Data.fun[0x0d].Addr = 0xFF;
@@ -519,7 +520,11 @@ static void LX_Check_To_Send(u8 frame_num)
 
 void H743_Data_Transmit_Check(void)
 {
+    LX_Check_To_Send(0x00); // ack frame
     LX_Check_To_Send(0x40); // remote control data
+    LX_Check_To_Send(0x41); // realtime control target
+    LX_Check_To_Send(0xE0); // cmd frame
+    LX_Check_To_Send(0xE2); // param back/write ack
 }
 
 
