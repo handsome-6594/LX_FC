@@ -809,6 +809,16 @@
               <FileType>5</FileType>
               <FilePath>.\FcSrc\Remote_Control.h</FilePath>
             </File>
+            <File>
+              <FileName>RC_Channel.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\FcSrc\RC_Channel.c</FilePath>
+            </File>
+            <File>
+              <FileName>RC_Channel.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\FcSrc\RC_Channel.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

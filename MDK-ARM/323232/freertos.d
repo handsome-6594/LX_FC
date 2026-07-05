@@ -66,3 +66,5 @@
 323232\freertos.o: .\DriversMCU\OLED.h
 323232\freertos.o: .\DriversMCU\OLED_Data.h
 323232\freertos.o: .\FcSrc\ANO_TO_H743_Data_Transmit.h
+323232\freertos.o: .\DriversMCU\Drv_Uart.h
+323232\freertos.o: .\FcSrc\Remote_Control.h

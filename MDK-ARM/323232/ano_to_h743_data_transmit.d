@@ -50,3 +50,7 @@
 323232\ano_to_h743_data_transmit.o: ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_hcd.h
 323232\ano_to_h743_data_transmit.o: .\DriversMCU\Drv_led.h
 323232\ano_to_h743_data_transmit.o: FcSrc\FC_State.h
+323232\ano_to_h743_data_transmit.o: FcSrc\JetsonNano_Data_Transmit.h
+323232\ano_to_h743_data_transmit.o: FcSrc\Of_Radar_Fusion.h
+323232\ano_to_h743_data_transmit.o: FcSrc\Remote_Control.h
+323232\ano_to_h743_data_transmit.o: .\DriversMCU\Drv_Uart.h

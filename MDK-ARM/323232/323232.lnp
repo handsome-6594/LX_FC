@@ -62,6 +62,10 @@
 "323232\ano_to_h743_data_transmit.o"
 "323232\fc_state.o"
 "323232\pwm.o"
+"323232\jetsonnano_data_transmit.o"
+"323232\of_radar_fusion.o"
+"323232\remote_control.o"
+"323232\rc_channel.o"
 --strict --scatter "323232\323232.sct"
 --summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
 --info sizes --info totals --info unused --info veneers
