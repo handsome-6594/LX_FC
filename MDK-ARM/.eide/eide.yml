@@ -6,7 +6,6 @@ packDir: null
 srcDirs:
   - DriversMCU
   - FcSrc
-  - Algorithm
 virtualFolder:
   name: <virtual_root>
   files: []
