@@ -64,5 +64,3 @@
 323232\drv_uart.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/semphr.h
 323232\drv_uart.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/queue.h
 323232\drv_uart.o: ../Drivers/CMSIS/RTOS2/Include/cmsis_os2.h
-323232\drv_uart.o: .\FcSrc\ANO_TO_H743_Data_Transmit.h
-323232\drv_uart.o: .\DriversMCU\Drv_led.h

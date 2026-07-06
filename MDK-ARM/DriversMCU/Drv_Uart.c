@@ -15,6 +15,7 @@ static void DrvUart_NoUse(uint8_t data)
     (void)data;
 }
 
+static DrvUartByteHandler Uart2RxByteHandler = DrvUart_NoUse;
 static DrvUartByteHandler Uart4RxByteHandler = DrvUart_NoUse;
 
 //====uart1
@@ -50,6 +51,84 @@ int fputc(int ch, FILE *stream)
 
 //uart4   H743通过凌霄IMU接收或发送数据
 //====uart4 //连接凌霄IMU
+//====uart2 optical flow
+#define OF_RXBufferSize 5
+#define OF_RXFIFOBufferSize (OF_RXBufferSize * 30)
+
+uint8_t OF_RxBuffer[OF_RXBufferSize];
+uint8_t OF_RxFIFOBuffer[OF_RXFIFOBufferSize];
+FIFO_Type OF_fifo;
+FIFO_Type *pOFfifo = NULL;
+
+extern DMA_HandleTypeDef hdma_usart2_rx;
+
+void DrvUart2_Receive_Enable(void)
+{
+    HAL_UARTEx_ReceiveToIdle_DMA(&huart2, OF_RxBuffer, OF_RXBufferSize);
+    __HAL_DMA_DISABLE_IT(&hdma_usart2_rx, DMA_IT_HT);
+}
+
+void DrvUart2_Fifo_Init(void)
+{
+    pOFfifo = &OF_fifo;
+    FIFO_Init(pOFfifo, OF_RxFIFOBuffer, sizeof(uint8_t), OF_RXFIFOBufferSize);
+}
+
+void DrvUart2_RegisterRxByteHandler(DrvUartByteHandler handler)
+{
+    Uart2RxByteHandler = (handler != NULL) ? handler : DrvUart_NoUse;
+}
+
+void DrvUart2_RxEventCallback(uint16_t size)
+{
+    if(pOFfifo != NULL && size <= OF_RXBufferSize)
+    {
+        FIFO_Add(pOFfifo, OF_RxBuffer, size);
+    }
+
+    DrvUart2_Receive_Enable();
+}
+
+void DrvUart2_ErrorCallback(void)
+{
+    DrvUart2_Receive_Enable();
+}
+
+void drvU2DataCheck(void)
+{
+    uint8_t data_temp;
+    uint8_t has_data;
+
+    if(pOFfifo == NULL)
+    {
+        return;
+    }
+
+    for(;;)
+    {
+        taskENTER_CRITICAL();
+        has_data = FIFO_GetOne(pOFfifo, &data_temp);
+        taskEXIT_CRITICAL();
+
+        if(!has_data)
+        {
+            break;
+        }
+
+        Uart2RxByteHandler(data_temp);
+    }
+}
+
+void DrvUart2SendBuf(unsigned char *DataToSend, uint8_t data_num)
+{
+    if(DataToSend == NULL || data_num == 0)
+    {
+        return;
+    }
+
+    HAL_UART_Transmit(&huart2, DataToSend, data_num, 0xffff);
+}
+
 #define LX_RXBufferSize 15
 #define LX_RXFIFOBufferSize (LX_RXBufferSize * 40)
 

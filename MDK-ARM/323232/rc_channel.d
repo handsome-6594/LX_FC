@@ -51,7 +51,6 @@
 323232\rc_channel.o: FcSrc\Remote_Control.h
 323232\rc_channel.o: FcSrc\ANO_TO_H743_Data_Transmit.h
 323232\rc_channel.o: .\DriversMCU\Drv_led.h
-323232\rc_channel.o: FcSrc\FC_State.h
 323232\rc_channel.o: FcSrc\PWM.h
 323232\rc_channel.o: ../Core/Inc/adc.h
-323232\rc_channel.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
+323232\rc_channel.o: FcSrc\To_LX_Fun.h

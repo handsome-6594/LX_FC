@@ -66,6 +66,8 @@
 "323232\of_radar_fusion.o"
 "323232\remote_control.o"
 "323232\rc_channel.o"
+"323232\to_lx_fun.o"
+"323232\optical_flow_sensor.o"
 --strict --scatter "323232\323232.sct"
 --summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
 --info sizes --info totals --info unused --info veneers

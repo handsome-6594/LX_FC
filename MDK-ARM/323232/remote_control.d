@@ -48,6 +48,4 @@
 323232\remote_control.o: ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_ll_usb.h
 323232\remote_control.o: ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_pcd_ex.h
 323232\remote_control.o: ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_hcd.h
-323232\remote_control.o: ../Core/Inc/tim.h
 323232\remote_control.o: ../Core/Inc/usart.h
-323232\remote_control.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h

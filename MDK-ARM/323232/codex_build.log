@@ -1,0 +1,11 @@
+*** Using Compiler 'V5.06 update 7 (build 960)', folder: 'D:\Keil_v5\ARM\ARMCC\Bin'
+Build target '323232'
+compiling freertos.c...
+../Drivers/CMSIS/Include/cachel1_armv7.h(188): warning:  #1041-D: alignment for an auto object may not be larger than 8
+      } locals
+../Core/Src/freertos.c: 1 warning, 0 errors
+linking...
+Program Size: Code=76368 RO-data=3796 RW-data=356 ZI-data=42100  
+FromELF: creating hex file...
+"323232\323232.axf" - 0 Error(s), 1 Warning(s).
+Build Time Elapsed:  00:00:06
