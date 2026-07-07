@@ -12,6 +12,8 @@ volatile u32 lx_uart4_send33_ok_cnt = 0;
 volatile u32 lx_uart4_send33_fail_cnt = 0;
 volatile u32 lx_uart4_send34_ok_cnt = 0;
 volatile u32 lx_uart4_send34_fail_cnt = 0;
+volatile u32 lx_uart4_send40_ok_cnt = 0;
+volatile u32 lx_uart4_send40_fail_cnt = 0;
 pwm_value pwm_to_esc;
 raw_speed_union current_speed;
 altitude_option_un altitude_of_option;
@@ -502,6 +504,10 @@ static void H743_To_LX_FrameSend(u8 frame_num, Data_Frame *frame)
         {
             lx_uart4_send34_ok_cnt++;
         }
+        else if(frame_num == 0x40)
+        {
+            lx_uart4_send40_ok_cnt++;
+        }
     }
     else
     {
@@ -512,6 +518,10 @@ static void H743_To_LX_FrameSend(u8 frame_num, Data_Frame *frame)
         else if(frame_num == 0x34)
         {
             lx_uart4_send34_fail_cnt++;
+        }
+        else if(frame_num == 0x40)
+        {
+            lx_uart4_send40_fail_cnt++;
         }
     }
 
@@ -546,6 +556,7 @@ static void LX_Check_To_Send(u8 frame_num)
 void H743_Data_Transmit_Check(void)
 {
     LX_Check_To_Send(0x00); // ack frame
+    LX_Check_To_Send(0x0D); // battery voltage/current data
     LX_Check_To_Send(0x33); // external velocity sensor data
     LX_Check_To_Send(0x34); // external distance sensor data
     LX_Check_To_Send(0x40); // remote control data

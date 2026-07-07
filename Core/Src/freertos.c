@@ -40,6 +40,8 @@
 #include "FC_State.h"
 #include "Optical_Flow_Sensor.h"
 #include "Of_Radar_Fusion.h"
+#include "Drv_adc.h"
+#include "To_LX_Fun.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -349,10 +351,13 @@ void StartpwmPrintTask(void *argument)
 void Startuart4LXTask(void *argument)
 {
   (void)argument;
+  uint32_t last_swc_print_ms = 0;
+  uint32_t last_bat_send_ms = 0;
 
   Data_Init();
   DrvRcInputInit();
   DrvESCInit();
+  DrvAdcInit();
   DrvUart4_Fifo_Init();
   DrvUart4_Receive_Enable();
 
@@ -362,6 +367,33 @@ void Startuart4LXTask(void *argument)
     RC_Data_Task(0.001f);
     drvU4DataCheck();
     H743_Data_Transmit_Check();
+
+    if(HAL_GetTick() - last_bat_send_ms >= 100)
+    {
+      last_bat_send_ms = HAL_GetTick();
+      union_of_bat.data_of_bat.voltage_100 = Drv_AdcGetBatVolt100();
+      union_of_bat.data_of_bat.current_100 = Drv_AdcGetBatCurr100();
+      Data.fun[0x0D].wait_to_send = 1;
+    }
+
+    if(HAL_GetTick() - last_swc_print_ms >= 200)
+    {
+      last_swc_print_ms = HAL_GetTick();
+printf("mode=%d ch3=%d thr=%d alt_cm=%lu of=%d/%d/%d/%d pwm=%u,%u,%u,%u\r\n",
+       state.mode,
+       Channel_of_rc.data.ch[ch_3_thr],
+       ctrl_of_realtime.data.throttle,
+       optical_flow.alt_cm,
+       optical_flow.link_sta,
+       optical_flow.flow_sta,
+       optical_flow.alt_sta,
+       optical_flow.work_sta,
+       pwm_to_esc.pwm_value1,
+       pwm_to_esc.pwm_value2,
+       pwm_to_esc.pwm_value3,
+       pwm_to_esc.pwm_value4);
+    }
+
     osDelay(1);
   }
 }
@@ -369,41 +401,32 @@ void Startuart4LXTask(void *argument)
 void StartOpticalFlowTask(void *argument)
 {
   (void)argument;
+  uint32_t last_check_ms = HAL_GetTick();
 
   OpticalFlow_Init();
   DrvUart2_Fifo_Init();
   DrvUart2_RegisterNotifyTask(xTaskGetCurrentTaskHandle());
   DrvUart2_Receive_Enable();
-  uint32_t last_print_ms = 0;
 
   for(;;)
   {
+    uint32_t now_ms;
+    float dt_s;
+
     (void)ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(10));
     drvU2DataCheck();
-    OpticalFlow_CheckState(0.01f);
-    ExtSensor_UpdateFromOpticalFlow(0.01f);
-    if(HAL_GetTick() - last_print_ms >= 100)
-    {
-      last_print_ms = HAL_GetTick();
 
-      printf("EXT link=%d work=%d flow=%d alt=%d v=%d,%d,%d dis=%lu gen33=%lu gen34=%lu u4_33=%lu/%lu u4_34=%lu/%lu wait=%d/%d\r\n",
-             optical_flow.link_sta,
-             optical_flow.work_sta,
-             optical_flow.flow_update_cnt,
-             optical_flow.alt_update_cnt,
-             ex_sensor.vel_general.vel_data.velocity_cmps[0],
-             ex_sensor.vel_general.vel_data.velocity_cmps[1],
-             ex_sensor.vel_general.vel_data.velocity_cmps[2],
-             ex_sensor.distance_general.distance_data.distance,
-             ext_flow_send33_cnt,
-             ext_flow_send34_cnt,
-             lx_uart4_send33_ok_cnt,
-             lx_uart4_send33_fail_cnt,
-             lx_uart4_send34_ok_cnt,
-             lx_uart4_send34_fail_cnt,
-             Data.fun[0x33].wait_to_send,
-             Data.fun[0x34].wait_to_send);
+    now_ms = HAL_GetTick();
+    dt_s = (float)(now_ms - last_check_ms) * 0.001f;
+    last_check_ms = now_ms;
+
+    if(dt_s <= 0.0f)
+    {
+      dt_s = 0.001f;
     }
+
+    OpticalFlow_CheckState(dt_s);
+    ExtSensor_UpdateFromOpticalFlow(dt_s);
   }
 }
 /* USER CODE END Application */

@@ -59,6 +59,7 @@
 "323232\key.o"
 "323232\oled.o"
 "323232\oled_data.o"
+"323232\drv_adc.o"
 "323232\ano_to_h743_data_transmit.o"
 "323232\fc_state.o"
 "323232\pwm.o"

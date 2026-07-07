@@ -18,10 +18,27 @@
 #define STICK_HIGH 1850
 #define ARM_HOLD_MS 500
 #define UNLOCK_CMD_RETRY_MS 100
+#define MODE_CH_LOW_LIMIT 1200
+#define MODE_CH_HIGH_LIMIT 1700
 
 static u8 motor_unlocked;
 static u16 arm_hold_ms;
 static u16 unlock_cmd_retry_ms;
+
+static u8 FlightModeFromChannel(s16 channel)
+{
+    if(channel < MODE_CH_LOW_LIMIT)
+    {
+        return 1;
+    }
+
+    if(channel < MODE_CH_HIGH_LIMIT)
+    {
+        return 2;
+    }
+
+    return 3;
+}
 
 static s16 LimitS16(s16 value, s16 min, s16 max)
 {
@@ -87,9 +104,9 @@ static u32 ReadAdcOnce(ADC_HandleTypeDef *hadc)
 
 static void SyncSwitchState(void)
 {
-    Switch_sta_st.SWA = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_5_aux1]);
+    Switch_sta_st.SWA = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_7_aux3]);
     Switch_sta_st.SWB = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_6_aux2]);
-    Switch_sta_st.SWC = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_7_aux3]);
+    Switch_sta_st.SWC = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_5_aux1]);
     Switch_sta_st.SWD = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_8_aux4]);
     Switch_sta_st.VRA = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_9_aux5]);
     Switch_sta_st.VRB = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_10_aux6]);
@@ -203,6 +220,8 @@ void RC_Data_Task(float dT_s)
         return;
     }
 
+    LX_Change_Mode(FlightModeFromChannel(Channel_of_rc.data.ch[ch_5_aux1]));
+
     roll = Deadzone(Channel_of_rc.data.ch[ch_1_rol] - RC_MID_VALUE, RC_DEADZONE_ROLL_PITCH);
     pitch = Deadzone(Channel_of_rc.data.ch[ch_2_pit] - RC_MID_VALUE, RC_DEADZONE_ROLL_PITCH);
     throttle = Channel_of_rc.data.ch[ch_3_thr] - RC_LOW_VALUE;
@@ -261,6 +280,5 @@ void Bat_Curr_Data_Handle(void)
 
     union_of_bat.data_of_bat.current_100 = (u16)((raw * 330UL) / 65535UL);
 }
-
 
 

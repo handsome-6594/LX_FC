@@ -10,6 +10,8 @@ typedef struct
 
     u8 link_sta;
     u8 work_sta;
+    u8 flow_sta;
+    u8 alt_sta;
 
     u8 flow_quality;
 

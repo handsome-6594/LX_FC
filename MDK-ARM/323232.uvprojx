@@ -739,6 +739,16 @@
               <FileType>5</FileType>
               <FilePath>.\DriversMCU\OLED_Data.h</FilePath>
             </File>
+            <File>
+              <FileName>Drv_adc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\DriversMCU\Drv_adc.c</FilePath>
+            </File>
+            <File>
+              <FileName>Drv_adc.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\DriversMCU\Drv_adc.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

@@ -164,7 +164,7 @@ void OpticalFlow_Init(void)
 
     DrvUart2_RegisterRxByteHandler(OpticalFlow_ReceiveByte);
 }
-
+//光流数据超时状态检查
 void OpticalFlow_CheckState(float dT_s)
 {
     float dT_ms = dT_s * 1000.0f;
@@ -185,8 +185,9 @@ void OpticalFlow_CheckState(float dT_s)
     }
 
     optical_flow.link_sta = (link_time_ms < OF_LINK_TIMEOUT_MS) ? 1 : 0;
-    optical_flow.work_sta = (flow_time_ms < OF_LINK_TIMEOUT_MS &&
-                             alt_time_ms < OF_LINK_TIMEOUT_MS) ? 1 : 0;
+    optical_flow.flow_sta = (flow_time_ms < OF_LINK_TIMEOUT_MS) ? 1 : 0;
+    optical_flow.alt_sta = (alt_time_ms < OF_LINK_TIMEOUT_MS) ? 1 : 0;
+    optical_flow.work_sta = (optical_flow.flow_sta && optical_flow.alt_sta) ? 1 : 0;
 }
 
 void OpticalFlow_ReceiveByte(u8 data)

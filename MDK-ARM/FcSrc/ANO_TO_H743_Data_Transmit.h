@@ -161,6 +161,8 @@ extern volatile u32 lx_uart4_send33_ok_cnt;
 extern volatile u32 lx_uart4_send33_fail_cnt;
 extern volatile u32 lx_uart4_send34_ok_cnt;
 extern volatile u32 lx_uart4_send34_fail_cnt;
+extern volatile u32 lx_uart4_send40_ok_cnt;
+extern volatile u32 lx_uart4_send40_fail_cnt;
 
 
 /////////////////////////////////////////////////////
