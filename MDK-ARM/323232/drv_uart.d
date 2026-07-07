@@ -47,11 +47,6 @@
 323232\drv_uart.o: ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_ll_usb.h
 323232\drv_uart.o: ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_pcd_ex.h
 323232\drv_uart.o: ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_hcd.h
-323232\drv_uart.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
-323232\drv_uart.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
-323232\drv_uart.o: .\FcSrc\SysConfig.h
-323232\drv_uart.o: ../Core/Inc/usart.h
-323232\drv_uart.o: DriversMCU\fifo.h
 323232\drv_uart.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
 323232\drv_uart.o: ../Core/Inc/FreeRTOSConfig.h
 323232\drv_uart.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
@@ -61,6 +56,11 @@
 323232\drv_uart.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h
 323232\drv_uart.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h
 323232\drv_uart.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h
+323232\drv_uart.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
+323232\drv_uart.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
+323232\drv_uart.o: .\FcSrc\SysConfig.h
+323232\drv_uart.o: ../Core/Inc/usart.h
+323232\drv_uart.o: DriversMCU\fifo.h
 323232\drv_uart.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/semphr.h
 323232\drv_uart.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/queue.h
 323232\drv_uart.o: ../Drivers/CMSIS/RTOS2/Include/cmsis_os2.h

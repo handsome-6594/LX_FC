@@ -6,14 +6,19 @@
 #define SBUS_TIMEOUT_MS 300
 #define SBUS_RAW_MIN 172
 #define SBUS_RAW_MAX 1811
+#define SBUS_DMA_BUF_LEN 64
+
+volatile u32 sbus_dma_byte_cnt = 0;
+volatile u32 sbus_frame_cnt = 0;
 
 rc_channel_un Channel_of_rc;
 realtime_ctrl_un ctrl_of_realtime;
 SwitchStateSet Switch_sta_st;
 
-static u8 sbus_rx_byte;
+static u8 sbus_dma_buf[SBUS_DMA_BUF_LEN];
 static u8 sbus_frame[SBUS_FRAME_LEN];
 static u8 sbus_index;
+static u16 sbus_dma_pos;
 static u32 sbus_last_update_ms;
 static u8 sbus_signal_lost = 1;
 
@@ -63,11 +68,78 @@ static void SbusDecodeFrame(const u8 frame[SBUS_FRAME_LEN])
     {
         Channel_of_rc.data.ch[i] = SbusRawToPwm(raw_ch[i]);
     }
+    sbus_frame_cnt++;
 
     sbus_signal_lost = ((frame[23] & 0x0C) != 0) ? 1 : 0;
     sbus_last_update_ms = HAL_GetTick();
 }
 
+static void SbusPushByte(u8 data)
+{
+    if(sbus_index == 0 && data != SBUS_HEADER)
+    {
+        return;
+    }
+
+    sbus_frame[sbus_index++] = data;
+
+    if(sbus_index >= SBUS_FRAME_LEN)
+    {
+        if(sbus_frame[0] == SBUS_HEADER)
+        {
+            SbusDecodeFrame(sbus_frame);
+        }
+
+        sbus_index = 0;
+    }
+}
+
+static void SbusProcessDmaData(void)
+{
+    u16 pos;
+
+    if(huart8.hdmarx == NULL)
+    {
+        return;
+    }
+
+    pos = (u16)(SBUS_DMA_BUF_LEN - __HAL_DMA_GET_COUNTER(huart8.hdmarx));
+
+    while(sbus_dma_pos != pos)
+    {
+        SbusPushByte(sbus_dma_buf[sbus_dma_pos]);
+        sbus_dma_pos++;
+        sbus_dma_byte_cnt++;
+
+        if(sbus_dma_pos >= SBUS_DMA_BUF_LEN)
+        {
+            sbus_dma_pos = 0;
+        }
+    }
+}
+
+static void SbusStartDmaReceive(void)
+{
+    HAL_UART_DMAStop(&huart8);
+
+    sbus_index = 0;
+    sbus_dma_pos = 0;
+
+    if(HAL_UART_Receive_DMA(&huart8, sbus_dma_buf, SBUS_DMA_BUF_LEN) == HAL_OK)
+    {
+        if(huart8.hdmarx != NULL)
+        {
+            __HAL_DMA_DISABLE_IT(huart8.hdmarx, DMA_IT_HT);
+            __HAL_DMA_DISABLE_IT(huart8.hdmarx, DMA_IT_TC);
+        }
+
+        __HAL_UART_CLEAR_IDLEFLAG(&huart8);
+        __HAL_UART_ENABLE_IT(&huart8, UART_IT_IDLE);
+    }
+}
+
+//刚上电给它设为安全值 
+//在RcInputInit里面调用
 void RemoteControl_InitDefault(void)
 {
     for(u8 i = 0; i < 10; i++)
@@ -86,18 +158,22 @@ void RemoteControl_InitDefault(void)
     ctrl_of_realtime.data.vel_z = 0;
 }
 
+
 void DrvRcInputInit(void)
 {
     RemoteControl_InitDefault();
     sbus_index = 0;
+    sbus_dma_pos = 0;
     sbus_signal_lost = 1;
     sbus_last_update_ms = HAL_GetTick();
-    HAL_UART_Receive_IT(&huart8, &sbus_rx_byte, 1);
+    SbusStartDmaReceive();
 }
 
 void DrvRcInputTask(float dt)
 {
     (void)dt;
+
+    SbusProcessDmaData();
 
     if((HAL_GetTick() - sbus_last_update_ms) > SBUS_TIMEOUT_MS)
     {
@@ -107,39 +183,27 @@ void DrvRcInputTask(float dt)
 
 void RemoteControl_UartRxCpltCallback(UART_HandleTypeDef *huart)
 {
-    if(huart->Instance != UART8)
+    if(huart->Instance == UART8)
     {
-        return;
+        SbusProcessDmaData();
     }
+}
 
-    if(sbus_index == 0 && sbus_rx_byte != SBUS_HEADER)
+void RemoteControl_UartIdleCallback(UART_HandleTypeDef *huart)
+{
+    if(huart->Instance == UART8)
     {
-        HAL_UART_Receive_IT(&huart8, &sbus_rx_byte, 1);
-        return;
+        __HAL_UART_CLEAR_IDLEFLAG(huart);
+        SbusProcessDmaData();
     }
-
-    sbus_frame[sbus_index++] = sbus_rx_byte;
-
-    if(sbus_index >= SBUS_FRAME_LEN)
-    {
-        if(sbus_frame[0] == SBUS_HEADER)
-        {
-            SbusDecodeFrame(sbus_frame);
-        }
-
-        sbus_index = 0;
-    }
-
-    HAL_UART_Receive_IT(&huart8, &sbus_rx_byte, 1);
 }
 
 void RemoteControl_UartErrorCallback(UART_HandleTypeDef *huart)
 {
     if(huart->Instance == UART8)
     {
-        sbus_index = 0;
         sbus_signal_lost = 1;
-        HAL_UART_Receive_IT(&huart8, &sbus_rx_byte, 1);
+        SbusStartDmaReceive();
     }
 }
 

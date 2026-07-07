@@ -71,3 +71,5 @@
 323232\freertos.o: .\FcSrc\RC_Channel.h
 323232\freertos.o: .\FcSrc\PWM.h
 323232\freertos.o: .\FcSrc\FC_State.h
+323232\freertos.o: .\Protocol\Optical_Flow_Sensor.h
+323232\freertos.o: .\FcSrc\Of_Radar_Fusion.h

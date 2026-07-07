@@ -14,12 +14,14 @@
 #define MAX_ANGLE 3500
 #define MAX_YAW_DPS 200
 #define FAILSAFE_THROTTLE 350
-#define STICK_LOW 1100
-#define STICK_HIGH 1900
-#define ARM_HOLD_MS 800
+#define STICK_LOW 1150
+#define STICK_HIGH 1850
+#define ARM_HOLD_MS 500
+#define UNLOCK_CMD_RETRY_MS 100
 
 static u8 motor_unlocked;
 static u16 arm_hold_ms;
+static u16 unlock_cmd_retry_ms;
 
 static s16 LimitS16(s16 value, s16 min, s16 max)
 {
@@ -122,6 +124,7 @@ static void RcUnlockTask(float dT_s)
     {
         motor_unlocked = 0;
         arm_hold_ms = 0;
+        unlock_cmd_retry_ms = 0;
         return;
     }
 
@@ -129,6 +132,7 @@ static void RcUnlockTask(float dT_s)
     {
         motor_unlocked = 0;
         arm_hold_ms = 0;
+        unlock_cmd_retry_ms = 0;
         return;
     }
 
@@ -140,15 +144,27 @@ static void RcUnlockTask(float dT_s)
         }
         else
         {
-            if(FC_Unlock())
-            {
-                motor_unlocked = 1;
-            }
+            motor_unlocked = 1;
+            unlock_cmd_retry_ms = UNLOCK_CMD_RETRY_MS;
+            FC_Unlock();
         }
     }
     else
     {
         arm_hold_ms = 0;
+    }
+
+    if(motor_unlocked)
+    {
+        if(unlock_cmd_retry_ms < UNLOCK_CMD_RETRY_MS)
+        {
+            unlock_cmd_retry_ms += dt_ms;
+        }
+        else
+        {
+            unlock_cmd_retry_ms = 0;
+            FC_Unlock();
+        }
     }
 }
 
@@ -161,6 +177,7 @@ void RC_MotorForceLock(void)
 {
     motor_unlocked = 0;
     arm_hold_ms = 0;
+    unlock_cmd_retry_ms = 0;
 }
 
 void RC_Data_Task(float dT_s)

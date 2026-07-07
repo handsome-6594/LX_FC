@@ -1,11 +1,45 @@
 *** Using Compiler 'V5.06 update 7 (build 960)', folder: 'D:\Keil_v5\ARM\ARMCC\Bin'
 Build target '323232'
+compiling To_LX_Fun.c...
+../Drivers/CMSIS/Include/cachel1_armv7.h(188): warning:  #1041-D: alignment for an auto object may not be larger than 8
+      } locals
+FcSrc\To_LX_Fun.c: 1 warning, 0 errors
+compiling RC_Channel.c...
+../Drivers/CMSIS/Include/cachel1_armv7.h(188): warning:  #1041-D: alignment for an auto object may not be larger than 8
+      } locals
+FcSrc\RC_Channel.c: 1 warning, 0 errors
+compiling Of_Radar_Fusion.c...
+../Drivers/CMSIS/Include/cachel1_armv7.h(188): warning:  #1041-D: alignment for an auto object may not be larger than 8
+      } locals
+FcSrc\Of_Radar_Fusion.c: 1 warning, 0 errors
+compiling Optical_Flow_Sensor.c...
+../Drivers/CMSIS/Include/cachel1_armv7.h(188): warning:  #1041-D: alignment for an auto object may not be larger than 8
+      } locals
+Protocol\Optical_Flow_Sensor.c: 1 warning, 0 errors
+compiling Drv_Uart.c...
+../Drivers/CMSIS/Include/cachel1_armv7.h(188): warning:  #1041-D: alignment for an auto object may not be larger than 8
+      } locals
+DriversMCU\Drv_Uart.c: 1 warning, 0 errors
+compiling usart.c...
+../Drivers/CMSIS/Include/cachel1_armv7.h(188): warning:  #1041-D: alignment for an auto object may not be larger than 8
+      } locals
+../Core/Src/usart.c: 1 warning, 0 errors
 compiling freertos.c...
 ../Drivers/CMSIS/Include/cachel1_armv7.h(188): warning:  #1041-D: alignment for an auto object may not be larger than 8
       } locals
-../Core/Src/freertos.c: 1 warning, 0 errors
+../Core/Src/freertos.c(288): warning:  #550-D: variable "pwm"  was set but never used
+     pwm_value pwm = {0};
+../Core/Src/freertos.c(290): warning:  #550-D: variable "has_new_pwm"  was set but never used
+     uint8_t has_new_pwm = 0;
+../Core/Src/freertos.c(223): warning:  #177-D: function "LX_GetEulerAngleX100"  was declared but never referenced
+  static void LX_GetEulerAngleX100(s16 *roll_x100, s16 *pitch_x100, s16 *yaw_x100)
+../Core/Src/freertos.c: 4 warnings, 0 errors
+compiling ANO_TO_H743_Data_Transmit.c...
+../Drivers/CMSIS/Include/cachel1_armv7.h(188): warning:  #1041-D: alignment for an auto object may not be larger than 8
+      } locals
+FcSrc\ANO_TO_H743_Data_Transmit.c: 1 warning, 0 errors
 linking...
-Program Size: Code=76368 RO-data=3796 RW-data=356 ZI-data=42100  
+Program Size: Code=76676 RO-data=3868 RW-data=428 ZI-data=42396  
 FromELF: creating hex file...
-"323232\323232.axf" - 0 Error(s), 1 Warning(s).
-Build Time Elapsed:  00:00:06
+"323232\323232.axf" - 0 Error(s), 11 Warning(s).
+Build Time Elapsed:  00:00:15

@@ -65,11 +65,14 @@ typedef union
 extern rc_channel_un Channel_of_rc;
 extern realtime_ctrl_un ctrl_of_realtime;
 extern SwitchStateSet Switch_sta_st;
+extern volatile u32 sbus_dma_byte_cnt;
+extern volatile u32 sbus_frame_cnt;
 
 void RemoteControl_InitDefault(void);
 void DrvRcInputInit(void);
 void DrvRcInputTask(float dt);
 void RemoteControl_UartRxCpltCallback(UART_HandleTypeDef *huart);
+void RemoteControl_UartIdleCallback(UART_HandleTypeDef *huart);
 void RemoteControl_UartErrorCallback(UART_HandleTypeDef *huart);
 u8 RemoteControl_IsSignalLost(void);
 

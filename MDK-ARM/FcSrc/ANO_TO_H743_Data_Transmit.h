@@ -157,6 +157,10 @@ extern altitude_option_un altitude_of_option;
 extern Gyro_Sensor Gyro_acc_sense;
 extern volatile u8 pwm_update_flag;
 extern bat_union union_of_bat;
+extern volatile u32 lx_uart4_send33_ok_cnt;
+extern volatile u32 lx_uart4_send33_fail_cnt;
+extern volatile u32 lx_uart4_send34_ok_cnt;
+extern volatile u32 lx_uart4_send34_fail_cnt;
 
 
 /////////////////////////////////////////////////////

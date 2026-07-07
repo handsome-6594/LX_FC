@@ -48,5 +48,14 @@
 323232\usart.o: ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_pcd_ex.h
 323232\usart.o: ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_hcd.h
 323232\usart.o: .\DriversMCU\Drv_Uart.h
+323232\usart.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
+323232\usart.o: ../Core/Inc/FreeRTOSConfig.h
+323232\usart.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
+323232\usart.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h
+323232\usart.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h
+323232\usart.o: ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F/portmacro.h
+323232\usart.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h
+323232\usart.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h
+323232\usart.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h
 323232\usart.o: .\FcSrc\Remote_Control.h
 323232\usart.o: .\FcSrc\SysConfig.h

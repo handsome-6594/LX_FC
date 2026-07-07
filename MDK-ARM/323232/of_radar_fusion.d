@@ -48,3 +48,6 @@
 323232\of_radar_fusion.o: ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_ll_usb.h
 323232\of_radar_fusion.o: ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_pcd_ex.h
 323232\of_radar_fusion.o: ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_hcd.h
+323232\of_radar_fusion.o: .\Protocol\Optical_Flow_Sensor.h
+323232\of_radar_fusion.o: FcSrc\ANO_TO_H743_Data_Transmit.h
+323232\of_radar_fusion.o: .\DriversMCU\Drv_led.h

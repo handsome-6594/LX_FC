@@ -47,3 +47,5 @@
 323232\stm32h7xx_it.o: ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_pcd_ex.h
 323232\stm32h7xx_it.o: ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_hcd.h
 323232\stm32h7xx_it.o: ../Core/Inc/stm32h7xx_it.h
+323232\stm32h7xx_it.o: .\FcSrc\Remote_Control.h
+323232\stm32h7xx_it.o: .\FcSrc\SysConfig.h

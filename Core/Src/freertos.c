@@ -38,6 +38,8 @@
 #include "RC_Channel.h"
 #include "PWM.h"
 #include "FC_State.h"
+#include "Optical_Flow_Sensor.h"
+#include "Of_Radar_Fusion.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -89,6 +91,13 @@ const osThreadAttr_t uart4LXTask_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
 };
 
+osThreadId_t opticalFlowTaskHandle;
+const osThreadAttr_t opticalFlowTask_attributes = {
+  .name = "optFlowTask",
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+
 // /* Definitions for uartTestTask */
 // osThreadId_t uartTestTaskHandle;
 // const osThreadAttr_t uartTestTask_attributes = {
@@ -106,6 +115,7 @@ void StartOledTestTask(void *argument);
 void StartOledTestTask(void *argument);
 void StartpwmPrintTask(void *argument);
 void Startuart4LXTask(void *argument);
+void StartOpticalFlowTask(void *argument);
 // void StartUartTestTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -143,6 +153,8 @@ void MX_FREERTOS_Init(void) {
   pwmPrintTaskHandle = osThreadNew(StartpwmPrintTask, NULL, &pwmPrintTask_attributes);
 
   uart4LXTaskHandle = osThreadNew(Startuart4LXTask, NULL, &uart4LXTask_attributes);
+
+  opticalFlowTaskHandle = osThreadNew(StartOpticalFlowTask, NULL, &opticalFlowTask_attributes);
   /* creation of uartTestTask */
   // uartTestTaskHandle = osThreadNew(StartUartTestTask, NULL, &uartTestTask_attributes);
 
@@ -208,42 +220,42 @@ void StartKeyTestTask(void *argument)
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
-static void LX_GetEulerAngleX100(s16 *roll_x100, s16 *pitch_x100, s16 *yaw_x100)
-{
-  attitude_quat quat;
-  float qw;
-  float qx;
-  float qy;
-  float qz;
-  float sinp;
-  const float rad_to_deg_x100 = 5729.57795f;
+// static void LX_GetEulerAngleX100(s16 *roll_x100, s16 *pitch_x100, s16 *yaw_x100)
+// {
+//   attitude_quat quat;
+//   float qw;
+//   float qx;
+//   float qy;
+//   float qz;
+//   float sinp;
+//   const float rad_to_deg_x100 = 5729.57795f;
 
-  taskENTER_CRITICAL();
-  quat = LX_quat;
-  taskEXIT_CRITICAL();
+//   taskENTER_CRITICAL();
+//   quat = LX_quat;
+//   taskEXIT_CRITICAL();
 
-  qw = (float)quat.quat_w_10000 * 0.0001f;
-  qx = (float)quat.quat_x_10000 * 0.0001f;
-  qy = (float)quat.quat_y_10000 * 0.0001f;
-  qz = (float)quat.quat_z_10000 * 0.0001f;
+//   qw = (float)quat.quat_w_10000 * 0.0001f;
+//   qx = (float)quat.quat_x_10000 * 0.0001f;
+//   qy = (float)quat.quat_y_10000 * 0.0001f;
+//   qz = (float)quat.quat_z_10000 * 0.0001f;
 
-  *roll_x100 = (s16)(atan2f(2.0f * (qw * qx + qy * qz),
-                            1.0f - 2.0f * (qx * qx + qy * qy)) * rad_to_deg_x100);
+//   *roll_x100 = (s16)(atan2f(2.0f * (qw * qx + qy * qz),
+//                             1.0f - 2.0f * (qx * qx + qy * qy)) * rad_to_deg_x100);
 
-  sinp = 2.0f * (qw * qy - qz * qx);
-  if(sinp > 1.0f)
-  {
-    sinp = 1.0f;
-  }
-  else if(sinp < -1.0f)
-  {
-    sinp = -1.0f;
-  }
+//   sinp = 2.0f * (qw * qy - qz * qx);
+//   if(sinp > 1.0f)
+//   {
+//     sinp = 1.0f;
+//   }
+//   else if(sinp < -1.0f)
+//   {
+//     sinp = -1.0f;
+//   }
 
-  *pitch_x100 = (s16)(asinf(sinp) * rad_to_deg_x100);
-  *yaw_x100 = (s16)(atan2f(2.0f * (qw * qz + qx * qy),
-                           1.0f - 2.0f * (qy * qy + qz * qz)) * rad_to_deg_x100);
-}
+//   *pitch_x100 = (s16)(asinf(sinp) * rad_to_deg_x100);
+//   *yaw_x100 = (s16)(atan2f(2.0f * (qw * qz + qx * qy),
+//                            1.0f - 2.0f * (qy * qy + qz * qz)) * rad_to_deg_x100);
+// }
 
 void StartOledTestTask(void *argument)
 {
@@ -273,9 +285,9 @@ void StartOledTestTask(void *argument)
 
 void StartpwmPrintTask(void *argument)
 {
-  pwm_value pwm = {0};
-  uint16_t print_cnt = 0;
-  uint8_t has_new_pwm = 0;
+   pwm_value pwm = {0};
+  // uint16_t print_cnt = 0;
+   uint8_t has_new_pwm = 0;
   uint8_t last_lx_unlocked = 0;
 
   for(;;)
@@ -298,35 +310,37 @@ void StartpwmPrintTask(void *argument)
 
     ESC_Output(RC_MotorIsUnlocked() && state.is_unlocked);
 
-    if(has_new_pwm && ++print_cnt >= 250)
-    {
-      s16 lx_roll_x100;
-      s16 lx_pitch_x100;
-      s16 lx_yaw_x100;
+    // if(has_new_pwm && ++print_cnt >= 250)
+    // {
+    //   s16 lx_roll_x100;
+    //   s16 lx_pitch_x100;
+    //   s16 lx_yaw_x100;
 
-      print_cnt = 0;
-      LX_GetEulerAngleX100(&lx_roll_x100, &lx_pitch_x100, &lx_yaw_x100);
-
-printf("LX_PWM rc=%d lx=%d mode=%d att=%d,%d,%d ch=%d,%d,%d,%d tar=%d,%d,%d,%d raw=%u,%u,%u,%u\r\n",
-       RC_MotorIsUnlocked(),
-       state.is_unlocked,
-       state.mode,
-       lx_roll_x100,
-       lx_pitch_x100,
-       lx_yaw_x100,
-       Channel_of_rc.data.ch[ch_1_rol],
-       Channel_of_rc.data.ch[ch_2_pit],
-       Channel_of_rc.data.ch[ch_3_thr],
-       Channel_of_rc.data.ch[ch_4_yaw],
-       ctrl_of_realtime.data.roll,
-       ctrl_of_realtime.data.pitch,
-       ctrl_of_realtime.data.throttle,
-       ctrl_of_realtime.data.yaw_dps,
-       pwm.pwm_value1,
-       pwm.pwm_value2,
-       pwm.pwm_value3,
-       pwm.pwm_value4);
-    }
+    //   print_cnt = 0;
+    //   LX_GetEulerAngleX100(&lx_roll_x100, &lx_pitch_x100, &lx_yaw_x100);
+    //   printf("sbus byte=%lu frame=%lu lost=%d rc=%d lx=%d mode=%d ch=%d,%d,%d,%d tar=%d,%d,%d,%d pwm=%u,%u,%u,%u att=%d,%d,%d\r\n",
+    //    sbus_dma_byte_cnt,
+    //    sbus_frame_cnt,
+    //    RemoteControl_IsSignalLost(),
+    //    RC_MotorIsUnlocked(),
+    //    state.is_unlocked,
+    //    state.mode,
+    //    Channel_of_rc.data.ch[ch_1_rol],
+    //    Channel_of_rc.data.ch[ch_2_pit],
+    //    Channel_of_rc.data.ch[ch_3_thr],
+    //    Channel_of_rc.data.ch[ch_4_yaw],
+    //    ctrl_of_realtime.data.roll,
+    //    ctrl_of_realtime.data.pitch,
+    //    ctrl_of_realtime.data.throttle,
+    //    ctrl_of_realtime.data.yaw_dps,
+    //    pwm.pwm_value1,
+    //    pwm.pwm_value2,
+    //    pwm.pwm_value3,
+    //    pwm.pwm_value4,
+    //    lx_roll_x100,
+    //    lx_pitch_x100,
+    //    lx_yaw_x100);
+    // }
 
     osDelay(2);
   }
@@ -349,6 +363,47 @@ void Startuart4LXTask(void *argument)
     drvU4DataCheck();
     H743_Data_Transmit_Check();
     osDelay(1);
+  }
+}
+
+void StartOpticalFlowTask(void *argument)
+{
+  (void)argument;
+
+  OpticalFlow_Init();
+  DrvUart2_Fifo_Init();
+  DrvUart2_RegisterNotifyTask(xTaskGetCurrentTaskHandle());
+  DrvUart2_Receive_Enable();
+  uint32_t last_print_ms = 0;
+
+  for(;;)
+  {
+    (void)ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(10));
+    drvU2DataCheck();
+    OpticalFlow_CheckState(0.01f);
+    ExtSensor_UpdateFromOpticalFlow(0.01f);
+    if(HAL_GetTick() - last_print_ms >= 100)
+    {
+      last_print_ms = HAL_GetTick();
+
+      printf("EXT link=%d work=%d flow=%d alt=%d v=%d,%d,%d dis=%lu gen33=%lu gen34=%lu u4_33=%lu/%lu u4_34=%lu/%lu wait=%d/%d\r\n",
+             optical_flow.link_sta,
+             optical_flow.work_sta,
+             optical_flow.flow_update_cnt,
+             optical_flow.alt_update_cnt,
+             ex_sensor.vel_general.vel_data.velocity_cmps[0],
+             ex_sensor.vel_general.vel_data.velocity_cmps[1],
+             ex_sensor.vel_general.vel_data.velocity_cmps[2],
+             ex_sensor.distance_general.distance_data.distance,
+             ext_flow_send33_cnt,
+             ext_flow_send34_cnt,
+             lx_uart4_send33_ok_cnt,
+             lx_uart4_send33_fail_cnt,
+             lx_uart4_send34_ok_cnt,
+             lx_uart4_send34_fail_cnt,
+             Data.fun[0x33].wait_to_send,
+             Data.fun[0x34].wait_to_send);
+    }
   }
 }
 /* USER CODE END Application */

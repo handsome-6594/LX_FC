@@ -17,6 +17,7 @@ static void DrvUart_NoUse(uint8_t data)
 
 static DrvUartByteHandler Uart2RxByteHandler = DrvUart_NoUse;
 static DrvUartByteHandler Uart4RxByteHandler = DrvUart_NoUse;
+static TaskHandle_t Uart2NotifyTaskHandle = NULL;
 
 //====uart1
 /* 告知连接器不从C库链接使用半主机的函数 */
@@ -79,19 +80,40 @@ void DrvUart2_RegisterRxByteHandler(DrvUartByteHandler handler)
     Uart2RxByteHandler = (handler != NULL) ? handler : DrvUart_NoUse;
 }
 
+void DrvUart2_RegisterNotifyTask(TaskHandle_t task_handle)
+{
+    Uart2NotifyTaskHandle = task_handle;
+}
+
 void DrvUart2_RxEventCallback(uint16_t size)
 {
+    BaseType_t highTaskWoken = pdFALSE;
+
     if(pOFfifo != NULL && size <= OF_RXBufferSize)
     {
         FIFO_Add(pOFfifo, OF_RxBuffer, size);
     }
 
     DrvUart2_Receive_Enable();
+
+    if(Uart2NotifyTaskHandle != NULL)
+    {
+        vTaskNotifyGiveFromISR(Uart2NotifyTaskHandle, &highTaskWoken);
+        portYIELD_FROM_ISR(highTaskWoken);
+    }
 }
 
 void DrvUart2_ErrorCallback(void)
 {
+    BaseType_t highTaskWoken = pdFALSE;
+
     DrvUart2_Receive_Enable();
+
+    if(Uart2NotifyTaskHandle != NULL)
+    {
+        vTaskNotifyGiveFromISR(Uart2NotifyTaskHandle, &highTaskWoken);
+        portYIELD_FROM_ISR(highTaskWoken);
+    }
 }
 
 void drvU2DataCheck(void)
@@ -208,11 +230,11 @@ void drvU4DataCheck(void)
     }
 }
 
-void DrvUart4SendBuf(unsigned char *DataToSend, uint8_t data_num)
+u8 DrvUart4SendBuf(unsigned char *DataToSend, uint8_t data_num)
 {
     if(DataToSend == NULL || data_num == 0)
     {
-        return;
+        return 0;
     }
 
     if(HAL_UART_Transmit_DMA(&huart4, DataToSend, data_num) == HAL_OK)
@@ -221,7 +243,11 @@ void DrvUart4SendBuf(unsigned char *DataToSend, uint8_t data_num)
         {
             xSemaphoreTake(LX_UART_Binary_SemaphoreHandle, portMAX_DELAY);
         }
+
+        return 1;
     }
+
+    return 0;
 }
 
 

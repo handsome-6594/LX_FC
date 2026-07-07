@@ -8,6 +8,10 @@
 Data_Transmit Data;
 attitude_quat LX_quat;
 volatile u8 pwm_update_flag = 0;
+volatile u32 lx_uart4_send33_ok_cnt = 0;
+volatile u32 lx_uart4_send33_fail_cnt = 0;
+volatile u32 lx_uart4_send34_ok_cnt = 0;
+volatile u32 lx_uart4_send34_fail_cnt = 0;
 pwm_value pwm_to_esc;
 raw_speed_union current_speed;
 altitude_option_un altitude_of_option;
@@ -25,7 +29,7 @@ static u8 send_buffer[50];
 
 
 static void H743_Received_Data_Analysis(const u8 *data, u8 len);
-static void H743_To_LX_Send_Data(u8 *data, u8 length);
+static u8 H743_To_LX_Send_Data(u8 *data, u8 length);
 void Check_ack(u8 goal_addr, check_ack *ck);
 void param_back(u8 goal_addr, param *para);
 
@@ -488,13 +492,34 @@ static void H743_To_LX_FrameSend(u8 frame_num, Data_Frame *frame)
         Data.checksum_ok.AC = check_sum2;
     }
 
-    H743_To_LX_Send_Data(send_buffer, pack.len);
+    if(H743_To_LX_Send_Data(send_buffer, pack.len))
+    {
+        if(frame_num == 0x33)
+        {
+            lx_uart4_send33_ok_cnt++;
+        }
+        else if(frame_num == 0x34)
+        {
+            lx_uart4_send34_ok_cnt++;
+        }
+    }
+    else
+    {
+        if(frame_num == 0x33)
+        {
+            lx_uart4_send33_fail_cnt++;
+        }
+        else if(frame_num == 0x34)
+        {
+            lx_uart4_send34_fail_cnt++;
+        }
+    }
 
 }
 
-static void H743_To_LX_Send_Data(u8 *data, u8 length)
+static u8 H743_To_LX_Send_Data(u8 *data, u8 length)
 {
-    DrvUart4SendBuf(data, length);
+    return DrvUart4SendBuf(data, length);
 }
 
 static void LX_Check_To_Send(u8 frame_num)
@@ -521,6 +546,8 @@ static void LX_Check_To_Send(u8 frame_num)
 void H743_Data_Transmit_Check(void)
 {
     LX_Check_To_Send(0x00); // ack frame
+    LX_Check_To_Send(0x33); // external velocity sensor data
+    LX_Check_To_Send(0x34); // external distance sensor data
     LX_Check_To_Send(0x40); // remote control data
     LX_Check_To_Send(0x41); // realtime control target
     LX_Check_To_Send(0xE0); // cmd frame
