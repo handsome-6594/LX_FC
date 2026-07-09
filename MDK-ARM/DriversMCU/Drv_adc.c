@@ -12,6 +12,7 @@
 static uint16_t BatAdcValue[ADC_SAMPLE_NUM] = {0};
 static uint16_t CurrAdcValue[ADC_SAMPLE_NUM] = {0};
 
+//DMA持续采样50个点，取平均值
 static double AdcAverage(const uint16_t *buf)
 {
     double sum = 0.0;
@@ -40,12 +41,14 @@ void DrvAdcInit(void)
     HAL_ADC_Start_DMA(&hadc1, (uint32_t *)CurrAdcValue, ADC_SAMPLE_NUM);
 }
 
+//电池电压换算
 double Drv_AdcGetBatVot(void)
 {
     double adc = AdcAverage(BatAdcValue);
     return adc / 65535.0 * BAT_ADC_REF_MV * (BAT_UP_R_KOHM + BAT_DW_R_KOHM) / BAT_DW_R_KOHM;
 }
 
+//电池电流换算
 double Drv_AdcGetBatCurr(void)
 {
     double adc = AdcAverage(CurrAdcValue);

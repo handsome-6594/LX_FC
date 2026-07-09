@@ -4,6 +4,7 @@ volatile u32 lx_mode_cmd_ok_cnt = 0;
 volatile u32 lx_mode_cmd_busy_cnt = 0;
 volatile u8 lx_mode_cmd_target = 0;
 
+//0XE0命令帧为发送做准备的过程
 u8 CMD_Send(u8 goal_addr, Cmd_data *cmd)
 {
     if(cmd == 0)
@@ -24,6 +25,7 @@ u8 CMD_Send(u8 goal_addr, Cmd_data *cmd)
     return 1;
 }
 
+//发送解锁凌霄IMU
 u8 FC_Unlock(void)
 {
     Cmd_data cmd;
@@ -40,6 +42,7 @@ u8 FC_Unlock(void)
     return CMD_Send(0xFF, &cmd);
 }
 
+//命令凌霄IMU切换模式
 u8 LX_Change_Mode(u8 new_mode)
 {
     static u8 old_mode = 0;
@@ -65,7 +68,7 @@ u8 LX_Change_Mode(u8 new_mode)
     cmd.CMD[1] = 0x01;
     cmd.CMD[2] = new_mode;
 
-    if(CMD_Send(0xFF, &cmd))
+    if(CMD_Send(0xFF, &cmd))  //CMD_Send返回1就是待发送，返回0不发送
     {
         old_mode = new_mode;
         lx_mode_cmd_target = new_mode;
@@ -73,6 +76,6 @@ u8 LX_Change_Mode(u8 new_mode)
         return 1;
     }
 
-    lx_mode_cmd_busy_cnt++;
+    lx_mode_cmd_busy_cnt++;//发送失败标记为忙
     return 0;
 }

@@ -50,8 +50,6 @@ int fputc(int ch, FILE *stream)
     return ch;
 }
 
-//uart4   H743通过凌霄IMU接收或发送数据
-//====uart4 //连接凌霄IMU
 //====uart2 optical flow
 #define OF_RXBufferSize 5
 #define OF_RXFIFOBufferSize (OF_RXBufferSize * 30)
@@ -151,6 +149,8 @@ void DrvUart2SendBuf(unsigned char *DataToSend, uint8_t data_num)
     HAL_UART_Transmit(&huart2, DataToSend, data_num, 0xffff);
 }
 
+//uart4   H743通过凌霄IMU接收或发送数据
+//====uart4 //连接凌霄IMU
 #define LX_RXBufferSize 15
 #define LX_RXFIFOBufferSize (LX_RXBufferSize * 40)
 
@@ -189,6 +189,8 @@ void DrvUart4_RxEventCallback(uint16_t size)
     DrvUart4_Receive_Enable();
 }
 
+//H743通过串口4发送数据给凌霄IMU的发送完成回调函数   
+//在这里释放释放信号量表示DMA搬运完成，并且UART4发送数据寄存器和移位寄存器空了
 void DrvUart4_TxCpltCallback(void)
 {
     BaseType_t highTaskWoken = pdFALSE;
@@ -229,7 +231,7 @@ void drvU4DataCheck(void)
         Uart4RxByteHandler(data_temp);
     }
 }
-
+//通过串口4发送指定的数据，take完信号量表示发送完成，返回1
 u8 DrvUart4SendBuf(unsigned char *DataToSend, uint8_t data_num)
 {
     if(DataToSend == NULL || data_num == 0)

@@ -285,16 +285,16 @@ static void H743_Received_Data_Analysis(const u8 *data, u8 len)
             Data.cmd_wait_ack = 0;
         }
     }
-    //凌霄IMU想读取参数，H743返回
+    //匿名上位机V7想读取参数
     else if(*(data + 2) == 0XE1)
     {
         u16 par_Id = get_u16_le(&data[4]);
         param_aux.par_ID = par_Id;
         param_aux.par_value = 0;
-        //H743返回参数0，目前没有实际意义
+        //程序手动返回参数0，目前没有实际意义
         param_back(0XFF, &param_aux);
     }
-    //凌霄IMU向H743写参数，没什么好写的，H743只一味的回复ACK
+    //上位机想向硬件地址写参数 比如调pid参数等 或者 上位机发送的读取参数请求，返回那个参数  
     else if(*(data + 2) == 0XE2)
     {
         the_check_ack.ID = *(data + 4);
@@ -527,11 +527,13 @@ static void H743_To_LX_FrameSend(u8 frame_num, Data_Frame *frame)
 
 }
 
+//这个函数不对外暴露，只是一个模块内封装的接口
 static u8 H743_To_LX_Send_Data(u8 *data, u8 length)
 {
     return DrvUart4SendBuf(data, length);
 }
 
+//检查这个ID号的数据该不该发   该发就发，不该发看是不是周期发送的
 static void LX_Check_To_Send(u8 frame_num)
 {
     if(Data.fun[frame_num].wait_to_send)
@@ -553,6 +555,7 @@ static void LX_Check_To_Send(u8 frame_num)
     }
 }
 
+//集中在一个函数里看哪个帧需要发送
 void H743_Data_Transmit_Check(void)
 {
     LX_Check_To_Send(0x00); // ack frame

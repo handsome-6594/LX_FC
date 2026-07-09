@@ -42,7 +42,7 @@ static void MarkLinkUpdated(void)
     link_time_ms = 0.0f;
     optical_flow.link_sta = 1;
 }
-
+//光流数据解包
 static void OpticalFlow_ParseFrame(const u8 *data, u8 len)
 {
     u8 check_sum1 = 0;
@@ -190,6 +190,7 @@ void OpticalFlow_CheckState(float dT_s)
     optical_flow.work_sta = (optical_flow.flow_sta && optical_flow.alt_sta) ? 1 : 0;
 }
 
+//逐字节收数据
 void OpticalFlow_ReceiveByte(u8 data)
 {
     static u8 data_len = 0;

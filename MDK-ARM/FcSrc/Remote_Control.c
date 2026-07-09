@@ -22,6 +22,7 @@ static u16 sbus_dma_pos;
 static u32 sbus_last_update_ms;
 static u8 sbus_signal_lost = 1;
 
+//限幅函数
 static s16 LimitS16(s16 value, s16 min, s16 max)
 {
     if(value < min)
@@ -37,12 +38,14 @@ static s16 LimitS16(s16 value, s16 min, s16 max)
     return value;
 }
 
+//将Sbus原始值映射成pwm 1000-2000
 static s16 SbusRawToPwm(u16 raw)
 {
     s32 pwm = ((s32)raw - SBUS_RAW_MIN) * 1000 / (SBUS_RAW_MAX - SBUS_RAW_MIN) + 1000;
     return LimitS16((s16)pwm, 1000, 2000);
 }
 
+//Sbus协议解码函数，只使用前10个通道的数据
 static void SbusDecodeFrame(const u8 frame[SBUS_FRAME_LEN])
 {
     u16 raw_ch[16];
@@ -74,6 +77,7 @@ static void SbusDecodeFrame(const u8 frame[SBUS_FRAME_LEN])
     sbus_last_update_ms = HAL_GetTick();
 }
 
+//每一字节累计，累计够25字节后判断帧头，然后调用解码函数
 static void SbusPushByte(u8 data)
 {
     if(sbus_index == 0 && data != SBUS_HEADER)
@@ -94,6 +98,7 @@ static void SbusPushByte(u8 data)
     }
 }
 
+//处理DMA（循环模式）写入数组的数据
 static void SbusProcessDmaData(void)
 {
     u16 pos;
@@ -118,6 +123,7 @@ static void SbusProcessDmaData(void)
     }
 }
 
+//开启循环DMA搬运和串口空闲中断
 static void SbusStartDmaReceive(void)
 {
     HAL_UART_DMAStop(&huart8);
@@ -158,7 +164,7 @@ void RemoteControl_InitDefault(void)
     ctrl_of_realtime.data.vel_z = 0;
 }
 
-
+//上电初始化为默认值 之后启用串口8的DMA接收
 void DrvRcInputInit(void)
 {
     RemoteControl_InitDefault();
@@ -169,6 +175,7 @@ void DrvRcInputInit(void)
     SbusStartDmaReceive();
 }
 
+//判断上次更新遥控器的时间距离现在过了多久，判断遥控器是否失联
 void DrvRcInputTask(float dt)
 {
     (void)dt;
@@ -207,6 +214,7 @@ void RemoteControl_UartErrorCallback(UART_HandleTypeDef *huart)
     }
 }
 
+//把遥控器信号丢失封装为一个函数
 u8 RemoteControl_IsSignalLost(void)
 {
     return sbus_signal_lost;

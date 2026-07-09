@@ -25,6 +25,7 @@ static u8 motor_unlocked;
 static u16 arm_hold_ms;
 static u16 unlock_cmd_retry_ms;
 
+//切换模式
 static u8 FlightModeFromChannel(s16 channel)
 {
     if(channel < MODE_CH_LOW_LIMIT)
@@ -40,6 +41,7 @@ static u8 FlightModeFromChannel(s16 channel)
     return 3;
 }
 
+//限幅函数
 static s16 LimitS16(s16 value, s16 min, s16 max)
 {
     if(value < min)
@@ -55,6 +57,7 @@ static s16 LimitS16(s16 value, s16 min, s16 max)
     return value;
 }
 
+//死区处理   把遥杆中位的小抖动滤掉
 static s16 Deadzone(s16 value, s16 deadzone)
 {
     if(value > deadzone)
@@ -70,6 +73,7 @@ static s16 Deadzone(s16 value, s16 deadzone)
     return 0;
 }
 
+//开关的中高低挡的判断
 static SwitchState SwitchStateFromChannel(s16 channel)
 {
     if(channel < 1200)
@@ -102,6 +106,7 @@ static u32 ReadAdcOnce(ADC_HandleTypeDef *hadc)
     return value;
 }
 
+//不同通道绑定不同的开关
 static void SyncSwitchState(void)
 {
     Switch_sta_st.SWA = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_7_aux3]);
@@ -112,6 +117,7 @@ static void SyncSwitchState(void)
     Switch_sta_st.VRB = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_10_aux6]);
 }
 
+//内八解锁
 static u8 IsStickArmCommand(void)
 {
     return (Channel_of_rc.data.ch[ch_3_thr] < STICK_LOW) &&
@@ -120,6 +126,7 @@ static u8 IsStickArmCommand(void)
            (Channel_of_rc.data.ch[ch_2_pit] < STICK_LOW);
 }
 
+//外八上锁
 static u8 IsStickDisarmCommand(void)
 {
     return (Channel_of_rc.data.ch[ch_3_thr] < STICK_LOW) &&
@@ -128,11 +135,12 @@ static u8 IsStickDisarmCommand(void)
            (Channel_of_rc.data.ch[ch_2_pit] < STICK_LOW);
 }
 
+//遥控器解锁 如果真解锁了，100ms发一次
 static void RcUnlockTask(float dT_s)
 {
     u16 dt_ms = (u16)(dT_s * 1000.0f);
 
-    if(dt_ms == 0)
+    if(dt_ms == 0) //防止强转类型后数被截断成0
     {
         dt_ms = 1;
     }
@@ -197,6 +205,7 @@ void RC_MotorForceLock(void)
     unlock_cmd_retry_ms = 0;
 }
 
+//将各个通道的值解析并赋值
 void RC_Data_Task(float dT_s)
 {
     s16 roll;
