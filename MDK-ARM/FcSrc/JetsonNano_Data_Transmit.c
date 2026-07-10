@@ -5,6 +5,7 @@
 #include "Freq_Detector.h"
 #include "usart.h"
 #include "Map_Update.h"
+#include "Drv_Uart.h"
 
 #define JN_CMD_ACK_RETRY_INTERVAL_MS 80
 #define JN_CMD_ACK_RETRY_MAX         8
@@ -412,12 +413,7 @@ static void H743_To_JN_FrameSend(u8 frame_num, Data_Frame *frame)
 
 static u8 H743_To_JN_Send_Data(u8 *data, u8 length)
 {
-    if(data == NULL || length == 0)
-    {
-        return 0;
-    }
-
-    return (HAL_UART_Transmit(&huart5, data, length, 0XFFFF) == HAL_OK) ? 1 : 0;
+    return DrvUart3SendBuf(data, length);
 }
 
 static void JN_Check_To_Send(u8 frame_num)

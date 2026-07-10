@@ -1035,6 +1035,10 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
   {
     DrvUart2_RxEventCallback(Size);
   }
+  else if(huart->Instance == USART3)
+  {
+    DrvUart3_RxEventCallback(Size);
+  }
   else if(huart->Instance == UART4)
   {
     DrvUart4_RxEventCallback(Size);
@@ -1054,6 +1058,10 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
   if(huart->Instance == USART2)
   {
     DrvUart2_ErrorCallback();
+  }
+  else if(huart->Instance == USART3)
+  {
+    DrvUart3_ErrorCallback();
   }
   else if(huart->Instance == UART4)
   {

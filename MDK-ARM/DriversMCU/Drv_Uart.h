@@ -16,6 +16,15 @@ void DrvUart2_ErrorCallback(void);
 void drvU2DataCheck(void);
 void DrvUart2SendBuf(unsigned char *DataToSend, uint8_t data_num);
 
+void DrvUart3_Fifo_Init(void);
+void DrvUart3_Receive_Enable(void);
+void DrvUart3_RegisterRxByteHandler(DrvUartByteHandler handler);
+void DrvUart3_RegisterNotifyTask(TaskHandle_t task_handle);
+void DrvUart3_RxEventCallback(uint16_t size);
+void DrvUart3_ErrorCallback(void);
+void drvU3DataCheck(void);
+u8 DrvUart3SendBuf(unsigned char *DataToSend, uint8_t data_num);
+
 void DrvUart4_Fifo_Init(void);
 void DrvUart4_Receive_Enable(void);
 void DrvUart4_RegisterRxByteHandler(DrvUartByteHandler handler);

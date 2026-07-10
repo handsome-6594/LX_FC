@@ -16,8 +16,10 @@ static void DrvUart_NoUse(uint8_t data)
 }
 
 static DrvUartByteHandler Uart2RxByteHandler = DrvUart_NoUse;
+static DrvUartByteHandler Uart3RxByteHandler = DrvUart_NoUse;
 static DrvUartByteHandler Uart4RxByteHandler = DrvUart_NoUse;
 static TaskHandle_t Uart2NotifyTaskHandle = NULL;
+static TaskHandle_t Uart3NotifyTaskHandle = NULL;
 
 //====uart1
 /* 告知连接器不从C库链接使用半主机的函数 */
@@ -147,6 +149,106 @@ void DrvUart2SendBuf(unsigned char *DataToSend, uint8_t data_num)
     }
 
     HAL_UART_Transmit(&huart2, DataToSend, data_num, 0xffff);
+}
+
+//====usart3 JetsonNano
+#define JN_RXBufferSize 64
+#define JN_RXFIFOBufferSize (JN_RXBufferSize * 16)
+
+uint8_t JN_RxBuffer[JN_RXBufferSize];
+uint8_t JN_RxFIFOBuffer[JN_RXFIFOBufferSize];
+FIFO_Type JN_fifo;
+FIFO_Type *pJNfifo = NULL;
+
+extern DMA_HandleTypeDef hdma_usart3_rx;
+
+void DrvUart3_Receive_Enable(void)
+{
+    HAL_UARTEx_ReceiveToIdle_DMA(&huart3, JN_RxBuffer, JN_RXBufferSize);
+    __HAL_DMA_DISABLE_IT(&hdma_usart3_rx, DMA_IT_HT);
+}
+
+void DrvUart3_Fifo_Init(void)
+{
+    pJNfifo = &JN_fifo;
+    FIFO_Init(pJNfifo, JN_RxFIFOBuffer, sizeof(uint8_t), JN_RXFIFOBufferSize);
+}
+
+void DrvUart3_RegisterRxByteHandler(DrvUartByteHandler handler)
+{
+    Uart3RxByteHandler = (handler != NULL) ? handler : DrvUart_NoUse;
+}
+
+void DrvUart3_RegisterNotifyTask(TaskHandle_t task_handle)
+{
+    Uart3NotifyTaskHandle = task_handle;
+}
+
+//串口空闲中断触发
+void DrvUart3_RxEventCallback(uint16_t size)
+{
+    BaseType_t highTaskWoken = pdFALSE;
+
+    if(pJNfifo != NULL && size <= JN_RXBufferSize)
+    {
+        FIFO_Add(pJNfifo, JN_RxBuffer, size);
+    }
+
+    DrvUart3_Receive_Enable();
+
+    if(Uart3NotifyTaskHandle != NULL)
+    {
+        vTaskNotifyGiveFromISR(Uart3NotifyTaskHandle, &highTaskWoken);
+        portYIELD_FROM_ISR(highTaskWoken);
+    }
+}
+
+void DrvUart3_ErrorCallback(void)
+{
+    BaseType_t highTaskWoken = pdFALSE;
+
+    DrvUart3_Receive_Enable();
+
+    if(Uart3NotifyTaskHandle != NULL)
+    {
+        vTaskNotifyGiveFromISR(Uart3NotifyTaskHandle, &highTaskWoken);
+        portYIELD_FROM_ISR(highTaskWoken);
+    }
+}
+
+void drvU3DataCheck(void)
+{
+    uint8_t data_temp;
+    uint8_t has_data;
+
+    if(pJNfifo == NULL)
+    {
+        return;
+    }
+
+    for(;;)
+    {
+        taskENTER_CRITICAL();
+        has_data = FIFO_GetOne(pJNfifo, &data_temp);
+        taskEXIT_CRITICAL();
+
+        if(!has_data)
+        {
+            break;
+        }
+
+        Uart3RxByteHandler(data_temp);
+    }
+}
+
+u8 DrvUart3SendBuf(unsigned char *DataToSend, uint8_t data_num)
+{
+    if(DataToSend == NULL || data_num == 0)
+    {
+        return 0;
+    }
+
+    return (HAL_UART_Transmit(&huart3, DataToSend, data_num, 0xffff) == HAL_OK) ? 1 : 0;
 }
 
 //uart4   H743通过凌霄IMU接收或发送数据

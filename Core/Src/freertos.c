@@ -42,6 +42,7 @@
 #include "Of_Radar_Fusion.h"
 #include "Drv_adc.h"
 #include "To_LX_Fun.h"
+#include "JetsonNano_Data_Transmit.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -100,6 +101,13 @@ const osThreadAttr_t opticalFlowTask_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
 };
 
+osThreadId_t jetsonRxTaskHandle;
+const osThreadAttr_t jetsonRxTask_attributes = {
+  .name = "Jetson_RX",
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+
 // /* Definitions for uartTestTask */
 // osThreadId_t uartTestTaskHandle;
 // const osThreadAttr_t uartTestTask_attributes = {
@@ -118,6 +126,7 @@ void StartOledTestTask(void *argument);
 void StartpwmPrintTask(void *argument);
 void Startuart4LXTask(void *argument);
 void StartOpticalFlowTask(void *argument);
+void StartJetsonRxTask(void *argument);
 // void StartUartTestTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -157,6 +166,8 @@ void MX_FREERTOS_Init(void) {
   uart4LXTaskHandle = osThreadNew(Startuart4LXTask, NULL, &uart4LXTask_attributes);
 
   opticalFlowTaskHandle = osThreadNew(StartOpticalFlowTask, NULL, &opticalFlowTask_attributes);
+
+  jetsonRxTaskHandle = osThreadNew(StartJetsonRxTask, NULL, &jetsonRxTask_attributes);
   /* creation of uartTestTask */
   // uartTestTaskHandle = osThreadNew(StartUartTestTask, NULL, &uartTestTask_attributes);
 
@@ -427,6 +438,23 @@ void StartOpticalFlowTask(void *argument)
 
     OpticalFlow_CheckState(dt_s);
     ExtSensor_UpdateFromOpticalFlow(dt_s);
+  }
+}
+
+void StartJetsonRxTask(void *argument)
+{
+  (void)argument;
+
+  DrvUart3_Fifo_Init();
+  DrvUart3_RegisterRxByteHandler(JetsonNano_To_H743_Data_Prepare);
+  DrvUart3_RegisterNotifyTask(xTaskGetCurrentTaskHandle());
+  DrvUart3_Receive_Enable();
+
+  for(;;)
+  {
+    (void)ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(1));
+    drvU3DataCheck();
+    JN_Data_Transmit_Check();
   }
 }
 /* USER CODE END Application */
