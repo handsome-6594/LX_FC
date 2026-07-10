@@ -5,6 +5,7 @@
 
 extern volatile u32 ext_flow_send33_cnt;
 extern volatile u32 ext_flow_send34_cnt;
+extern volatile u8 alt_soruce;
 
 //0X30  GPS数据 
 typedef struct 

@@ -405,7 +405,7 @@ void StartOpticalFlowTask(void *argument)
 
   OpticalFlow_Init();
   DrvUart2_Fifo_Init();
-  DrvUart2_RegisterNotifyTask(xTaskGetCurrentTaskHandle());
+  DrvUart2_RegisterNotifyTask(xTaskGetCurrentTaskHandle());//光流任务注册自己
   DrvUart2_Receive_Enable();
 
   for(;;)

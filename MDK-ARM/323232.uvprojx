@@ -839,6 +839,16 @@
               <FileType>5</FileType>
               <FilePath>.\FcSrc\To_LX_Fun.h</FilePath>
             </File>
+            <File>
+              <FileName>Radar_Position.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\FcSrc\Radar_Position.c</FilePath>
+            </File>
+            <File>
+              <FileName>Radar_Position.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\FcSrc\Radar_Position.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -858,6 +868,28 @@
         </Group>
         <Group>
           <GroupName>Algorithm</GroupName>
+          <Files>
+            <File>
+              <FileName>Freq_Detector.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Algorithm\Freq_Detector.c</FilePath>
+            </File>
+            <File>
+              <FileName>Freq_Detector.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Algorithm\Freq_Detector.h</FilePath>
+            </File>
+            <File>
+              <FileName>Map_Update.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Algorithm\Map_Update.c</FilePath>
+            </File>
+            <File>
+              <FileName>Map_Update.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Algorithm\Map_Update.h</FilePath>
+            </File>
+          </Files>
         </Group>
         <Group>
           <GroupName>::CMSIS</GroupName>
