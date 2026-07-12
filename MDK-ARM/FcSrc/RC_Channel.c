@@ -109,22 +109,22 @@ static u32 ReadAdcOnce(ADC_HandleTypeDef *hadc)
 //不同通道绑定不同的开关
 static void SyncSwitchState(void)
 {
-    Switch_sta_st.SWA = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_7_aux3]);
-    Switch_sta_st.SWB = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_6_aux2]);
+    Switch_sta_st.SWA = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_6_aux2]);
+    Switch_sta_st.SWB = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_7_aux3]);
     Switch_sta_st.SWC = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_5_aux1]);
     Switch_sta_st.SWD = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_10_aux6]);
     Switch_sta_st.VRA = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_9_aux5]);
     Switch_sta_st.VRB = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_8_aux4]);
 }
 
-//雷达开关控制：VRA低挡打开雷达，其余挡位关闭雷达
+//雷达开关控制：VRA高挡打开雷达，低挡关闭雷达，中挡保持当前状态
 static void RadarPowerControlTask(void)
 {
-    if(Switch_sta_st.VRA == Switch_Low)
+    if(Switch_sta_st.VRA == Switch_High)
     {
         HAL_GPIO_WritePin(Radar_Ctrl_GPIO_Port, GPIO_PIN_13, GPIO_PIN_SET);
     }
-    else
+    else if(Switch_sta_st.VRA == Switch_Low)
     {
         HAL_GPIO_WritePin(Radar_Ctrl_GPIO_Port, GPIO_PIN_13, GPIO_PIN_RESET);
     }

@@ -17,6 +17,7 @@ volatile Radar_Pos_16_un Pos16_of_Radar;
 volatile Radar_Speed_un Speed_of_Radar;
 volatile Radar_Cmd_Vel_un speed_cmd_un;
 volatile u8 radar_pos_update_cnt = 0;
+volatile u8 radar_qua_update_cnt = 0;
 Camera_data_un Camera_Pos_data;
 x10000_Radar_qua_un Radar_qua_x10000;
 Radar_qua real_Radar_qua;
@@ -228,7 +229,7 @@ static void H743_Received_Data_From_JetsonNano_Analysis(const u8 *data, u8 len)
         }
         update_Flag.Radar_Speed = 1;
         FreqDetector_OnData(&JN_freq_detector[Data_stream_Radar_Speed]);
-        printf("radar vel vx = %d, vy = %d, vz = %d\r\n", Speed_of_Radar.speed_data.vx_x100, Speed_of_Radar.speed_data.vy_x100, Speed_of_Radar.speed_data.vz_x100);
+        // printf("radar vel vx = %d, vy = %d, vz = %d\r\n", Speed_of_Radar.speed_data.vx_x100, Speed_of_Radar.speed_data.vy_x100, Speed_of_Radar.speed_data.vz_x100);
     }
     //摄像头指示发现了什么，要往哪里走
     else if(*(data + 2) == 0X03)
@@ -283,6 +284,7 @@ static void H743_Received_Data_From_JetsonNano_Analysis(const u8 *data, u8 len)
         real_Radar_qua.qy = Radar_qua_x10000.data.qy_x10000 / 10000.0f;
         real_Radar_qua.qz = Radar_qua_x10000.data.qz_x10000 / 10000.0f;
         real_Radar_qua.qw = Radar_qua_x10000.data.qw_x10000 / 10000.0f;
+        radar_qua_update_cnt++;
         FreqDetector_OnData(&JN_freq_detector[Data_stream_Radar_qua]);
     }
     //0x00 校验返回帧

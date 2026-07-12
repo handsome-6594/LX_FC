@@ -43,6 +43,7 @@
 #include "Drv_adc.h"
 #include "To_LX_Fun.h"
 #include "JetsonNano_Data_Transmit.h"
+#include "Point_Navigation.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -371,11 +372,14 @@ void Startuart4LXTask(void *argument)
   DrvAdcInit();
   DrvUart4_Fifo_Init();
   DrvUart4_Receive_Enable();
+  PointNavigation_Init();
 
   for(;;)
   {
     DrvRcInputTask(0.001f);
     RC_Data_Task(0.001f);
+    PointNavigation_TestPointTask();
+    PointNavigation_Update();
     drvU4DataCheck();
     H743_Data_Transmit_Check();
 

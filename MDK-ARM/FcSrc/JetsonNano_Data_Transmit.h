@@ -139,8 +139,11 @@ extern volatile Radar_Pos_16_un Pos16_of_Radar;
 extern volatile Radar_Speed_un Speed_of_Radar;
 extern volatile Radar_Cmd_Vel_un speed_cmd_un;
 extern volatile u8 radar_pos_update_cnt;
+extern volatile u8 radar_qua_update_cnt;
 extern volatile _update_Flag_st update_Flag;
 extern Camera_data_un Camera_Pos_data;
+extern x10000_Radar_qua_un Radar_qua_x10000;
+extern Radar_qua real_Radar_qua;
 
 void JetsonNano_To_H743_Data_Prepare(u8 data);
 void JN_CMD_Send(u8 dest_addr, _cmd_st *cmd);
