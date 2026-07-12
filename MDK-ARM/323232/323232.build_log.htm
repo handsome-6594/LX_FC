@@ -22,15 +22,11 @@ Dialog DLL:      TCM.DLL V1.56.4.0
  
 <h2>Project:</h2>
 D:\GitHub\LX_FC\MDK-ARM\323232.uvprojx
-Project File Date:  07/07/2026
+Project File Date:  07/10/2026
 
 <h2>Output:</h2>
 *** Using Compiler 'V5.06 update 7 (build 960)', folder: 'D:\Keil_v5\ARM\ARMCC\Bin'
 Build target '323232'
-compiling RC_Channel.c...
-../Drivers/CMSIS/Include/cachel1_armv7.h(188): warning:  #1041-D: alignment for an auto object may not be larger than 8
-      } locals
-FcSrc\RC_Channel.c: 1 warning, 0 errors
 compiling To_LX_Fun.c...
 ../Drivers/CMSIS/Include/cachel1_armv7.h(188): warning:  #1041-D: alignment for an auto object may not be larger than 8
       } locals
@@ -38,15 +34,64 @@ FcSrc\To_LX_Fun.c: 1 warning, 0 errors
 compiling freertos.c...
 ../Drivers/CMSIS/Include/cachel1_armv7.h(188): warning:  #1041-D: alignment for an auto object may not be larger than 8
       } locals
-../Core/Src/freertos.c(290): warning:  #550-D: variable "pwm"  was set but never used
+../Core/Src/freertos.c(301): warning:  #550-D: variable "pwm"  was set but never used
      pwm_value pwm = {0};
-../Core/Src/freertos.c(292): warning:  #550-D: variable "has_new_pwm"  was set but never used
+../Core/Src/freertos.c(303): warning:  #550-D: variable "has_new_pwm"  was set but never used
      uint8_t has_new_pwm = 0;
 ../Core/Src/freertos.c: 3 warnings, 0 errors
-linking...
-Program Size: Code=79204 RO-data=3888 RW-data=448 ZI-data=42600  
-FromELF: creating hex file...
-"323232\323232.axf" - 0 Error(s), 5 Warning(s).
+compiling Drv_adc.c...
+../Drivers/CMSIS/Include/cachel1_armv7.h(188): warning:  #1041-D: alignment for an auto object may not be larger than 8
+      } locals
+DriversMCU\Drv_adc.c: 1 warning, 0 errors
+compiling Optical_Flow_Sensor.c...
+../Drivers/CMSIS/Include/cachel1_armv7.h(188): warning:  #1041-D: alignment for an auto object may not be larger than 8
+      } locals
+Protocol\Optical_Flow_Sensor.c: 1 warning, 0 errors
+compiling Of_Radar_Fusion.c...
+../Drivers/CMSIS/Include/cachel1_armv7.h(188): warning:  #1041-D: alignment for an auto object may not be larger than 8
+      } locals
+FcSrc\Of_Radar_Fusion.c: 1 warning, 0 errors
+compiling JetsonNano_Data_Transmit.c...
+../Drivers/CMSIS/Include/cachel1_armv7.h(188): warning:  #1041-D: alignment for an auto object may not be larger than 8
+      } locals
+FcSrc\JetsonNano_Data_Transmit.c(6): error:  #5: cannot open source input file "Freq_Detector.h": No such file or directory
+  #include "Freq_Detector.h"
+FcSrc\JetsonNano_Data_Transmit.c: 1 warning, 1 error
+compiling Remote_Control.c...
+../Drivers/CMSIS/Include/cachel1_armv7.h(188): warning:  #1041-D: alignment for an auto object may not be larger than 8
+      } locals
+FcSrc\Remote_Control.c: 1 warning, 0 errors
+compiling Radar_Position.c...
+../Drivers/CMSIS/Include/cachel1_armv7.h(188): warning:  #1041-D: alignment for an auto object may not be larger than 8
+      } locals
+FcSrc\Radar_Position.c: 1 warning, 0 errors
+compiling RC_Channel.c...
+../Drivers/CMSIS/Include/cachel1_armv7.h(188): warning:  #1041-D: alignment for an auto object may not be larger than 8
+      } locals
+FcSrc\RC_Channel.c: 1 warning, 0 errors
+compiling usart.c...
+../Drivers/CMSIS/Include/cachel1_armv7.h(188): warning:  #1041-D: alignment for an auto object may not be larger than 8
+      } locals
+../Core/Src/usart.c: 1 warning, 0 errors
+compiling Freq_Detector.c...
+../Drivers/CMSIS/Include/cachel1_armv7.h(188): warning:  #1041-D: alignment for an auto object may not be larger than 8
+      } locals
+Algorithm\Freq_Detector.c: 1 warning, 0 errors
+compiling ANO_TO_H743_Data_Transmit.c...
+../Drivers/CMSIS/Include/cachel1_armv7.h(188): warning:  #1041-D: alignment for an auto object may not be larger than 8
+      } locals
+FcSrc\ANO_TO_H743_Data_Transmit.c: 1 warning, 0 errors
+compiling Drv_Uart.c...
+../Drivers/CMSIS/Include/cachel1_armv7.h(188): warning:  #1041-D: alignment for an auto object may not be larger than 8
+      } locals
+DriversMCU\Drv_Uart.c: 1 warning, 0 errors
+compiling Map_Update.c...
+../Drivers/CMSIS/Include/cachel1_armv7.h(188): warning:  #1041-D: alignment for an auto object may not be larger than 8
+      } locals
+Algorithm\Map_Update.c(21): warning:  #550-D: variable "detection"  was set but never used
+      Camera_data_un detection = Raw_Cam_un;
+Algorithm\Map_Update.c: 2 warnings, 0 errors
+"323232\323232.axf" - 1 Error(s), 17 Warning(s).
 
 <h2>Software Packages used:</h2>
 
@@ -69,7 +114,8 @@ Package Vendor: Keil
 
    * Component: ARM::CMSIS:CORE:5.6.0
       Include file:  CMSIS/Core/Include/tz_context.h
-Build Time Elapsed:  00:00:07
+Target not created.
+Build Time Elapsed:  00:00:33
 </pre>
 </body>
 </html>

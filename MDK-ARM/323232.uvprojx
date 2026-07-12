@@ -889,6 +889,26 @@
               <FileType>5</FileType>
               <FilePath>.\Algorithm\Map_Update.h</FilePath>
             </File>
+            <File>
+              <FileName>Adaptive_PID.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Algorithm\Adaptive_PID.c</FilePath>
+            </File>
+            <File>
+              <FileName>Adaptive_PID.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Algorithm\Adaptive_PID.h</FilePath>
+            </File>
+            <File>
+              <FileName>Point_Navigation.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Algorithm\Point_Navigation.c</FilePath>
+            </File>
+            <File>
+              <FileName>Point_Navigation.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Algorithm\Point_Navigation.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

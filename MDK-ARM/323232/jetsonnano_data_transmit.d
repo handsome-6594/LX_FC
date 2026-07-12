@@ -48,3 +48,9 @@
 323232\jetsonnano_data_transmit.o: ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_ll_usb.h
 323232\jetsonnano_data_transmit.o: ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_pcd_ex.h
 323232\jetsonnano_data_transmit.o: ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_hcd.h
+323232\jetsonnano_data_transmit.o: FcSrc\ANO_TO_H743_Data_Transmit.h
+323232\jetsonnano_data_transmit.o: .\DriversMCU\Drv_led.h
+323232\jetsonnano_data_transmit.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
+323232\jetsonnano_data_transmit.o: FcSrc\Radar_Position.h
+323232\jetsonnano_data_transmit.o: FcSrc\Of_Radar_Fusion.h
+323232\jetsonnano_data_transmit.o: .\Protocol\Optical_Flow_Sensor.h

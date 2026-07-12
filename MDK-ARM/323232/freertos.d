@@ -75,3 +75,4 @@
 323232\freertos.o: .\FcSrc\Of_Radar_Fusion.h
 323232\freertos.o: .\DriversMCU\Drv_adc.h
 323232\freertos.o: .\FcSrc\To_LX_Fun.h
+323232\freertos.o: .\FcSrc\JetsonNano_Data_Transmit.h

@@ -8,7 +8,7 @@
 
 volatile u32 ext_flow_send33_cnt = 0;
 volatile u32 ext_flow_send34_cnt = 0;
-volatile u8 alt_soruce = 1;
+volatile u8 alt_soruce = 0;
 
 ex_sensor_data ex_sensor;
 

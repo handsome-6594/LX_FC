@@ -390,19 +390,19 @@ void Startuart4LXTask(void *argument)
     if(HAL_GetTick() - last_swc_print_ms >= 200)
     {
       last_swc_print_ms = HAL_GetTick();
-printf("mode=%d ch3=%d thr=%d alt_cm=%lu of=%d/%d/%d/%d pwm=%u,%u,%u,%u\r\n",
-       state.mode,
-       Channel_of_rc.data.ch[ch_3_thr],
-       ctrl_of_realtime.data.throttle,
-       optical_flow.alt_cm,
-       optical_flow.link_sta,
-       optical_flow.flow_sta,
-       optical_flow.alt_sta,
-       optical_flow.work_sta,
-       pwm_to_esc.pwm_value1,
-       pwm_to_esc.pwm_value2,
-       pwm_to_esc.pwm_value3,
-       pwm_to_esc.pwm_value4);
+// printf("mode=%d ch3=%d thr=%d alt_cm=%lu of=%d/%d/%d/%d pwm=%u,%u,%u,%u\r\n",
+//        state.mode,
+//        Channel_of_rc.data.ch[ch_3_thr],
+//        ctrl_of_realtime.data.throttle,
+//        optical_flow.alt_cm,
+//        optical_flow.link_sta,
+//        optical_flow.flow_sta,
+//        optical_flow.alt_sta,
+//        optical_flow.work_sta,
+//        pwm_to_esc.pwm_value1,
+//        pwm_to_esc.pwm_value2,
+//        pwm_to_esc.pwm_value3,
+//        pwm_to_esc.pwm_value4);
     }
 
     osDelay(1);

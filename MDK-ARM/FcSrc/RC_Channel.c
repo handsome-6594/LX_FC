@@ -112,9 +112,22 @@ static void SyncSwitchState(void)
     Switch_sta_st.SWA = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_7_aux3]);
     Switch_sta_st.SWB = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_6_aux2]);
     Switch_sta_st.SWC = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_5_aux1]);
-    Switch_sta_st.SWD = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_8_aux4]);
+    Switch_sta_st.SWD = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_10_aux6]);
     Switch_sta_st.VRA = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_9_aux5]);
-    Switch_sta_st.VRB = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_10_aux6]);
+    Switch_sta_st.VRB = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_8_aux4]);
+}
+
+//雷达开关控制：VRA低挡打开雷达，其余挡位关闭雷达
+static void RadarPowerControlTask(void)
+{
+    if(Switch_sta_st.VRA == Switch_Low)
+    {
+        HAL_GPIO_WritePin(Radar_Ctrl_GPIO_Port, GPIO_PIN_13, GPIO_PIN_SET);
+    }
+    else
+    {
+        HAL_GPIO_WritePin(Radar_Ctrl_GPIO_Port, GPIO_PIN_13, GPIO_PIN_RESET);
+    }
 }
 
 //内八解锁
@@ -214,6 +227,7 @@ void RC_Data_Task(float dT_s)
     s16 yaw;
 
     SyncSwitchState();
+    RadarPowerControlTask();
     RcUnlockTask(dT_s);
 
     if(RemoteControl_IsSignalLost())
@@ -289,5 +303,3 @@ void Bat_Curr_Data_Handle(void)
 
     union_of_bat.data_of_bat.current_100 = (u16)((raw * 330UL) / 65535UL);
 }
-
-
