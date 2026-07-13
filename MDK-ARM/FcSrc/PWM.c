@@ -33,15 +33,18 @@ static void PwmWriteDigital(int16_t value, uint32_t *pwm_data)
 {
     uint16_t packet;
 
-    value += DSHOT_THROTTLE_OFFSET;
+    if(value <= 0)
+    {
+        value = 0;
+    }
+    else
+    {
+        value += DSHOT_THROTTLE_OFFSET;
+    }
 
     if(value >= DSHOT_VALUE_MAX)
     {
         value = DSHOT_VALUE_MAX;
-    }
-    else if(value <= 0)
-    {
-        value = 0;
     }
 
     packet = PrepareDshotPacket((uint16_t)value);
