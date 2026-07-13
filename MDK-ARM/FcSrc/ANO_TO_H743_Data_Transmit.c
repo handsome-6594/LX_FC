@@ -3,6 +3,7 @@
 #include "JetsonNano_Data_Transmit.h"
 #include "Of_Radar_Fusion.h"
 #include "Remote_Control.h"
+#include "Point_Navigation.h"
 #include "Drv_Uart.h"
 
 Data_Transmit Data;
@@ -414,7 +415,20 @@ static void Send_Data_Buffer(u8 frame_num, frame_pack *pack)
 
         case 0X40://遥控器通道的数据
         {
-            FramePack_PutBuf(pack, Channel_of_rc.byte,20);
+            if(point_navigation_enable)
+            {
+                rc_channel_un rc = Channel_of_rc;
+
+                rc.data.ch[ch_1_rol] = 1500;
+                rc.data.ch[ch_2_pit] = 1500;
+                rc.data.ch[ch_3_thr] = 1500;
+                rc.data.ch[ch_4_yaw] = 1500;
+                FramePack_PutBuf(pack, rc.byte, 20);
+            }
+            else
+            {
+                FramePack_PutBuf(pack, Channel_of_rc.byte,20);
+            }
         }
         break;
 

@@ -203,6 +203,9 @@ static void PointNav_GetFcTaskState(s16 target_x, s16 target_y, s16 target_z, s1
 
 static void PointNav_WriteRealtimeVelocity(s16 vel_x, s16 vel_y, s16 vel_z, s16 yaw_dps)
 {
+    ctrl_of_realtime.data.roll = 0;
+    ctrl_of_realtime.data.pitch = 0;
+    ctrl_of_realtime.data.throttle = 500;
     ctrl_of_realtime.data.vel_x = vel_x;
     ctrl_of_realtime.data.vel_y = vel_y;
     ctrl_of_realtime.data.vel_z = vel_z;
@@ -386,9 +389,10 @@ void PointNavigation_TestPointTask(void)
     if(now_ms - last_gate_print_ms >= 500)
     {
         last_gate_print_ms = now_ms;
-        printf("pnav_gate unlock=%u swa=%u swd=%u src=%u pos_cnt=%u qua_cnt=%u healthy=%u en=%u\r\n",
+        printf("pnav_gate unlock=%u swa=%u swc=%u swd=%u src=%u pos_cnt=%u qua_cnt=%u healthy=%u en=%u\r\n",
                state.is_unlocked,
                Switch_sta_st.SWA,
+               Switch_sta_st.SWC,
                Switch_sta_st.SWD,
                cmd_vel_sorce,
                radar_pos_update_cnt,
@@ -398,6 +402,7 @@ void PointNavigation_TestPointTask(void)
     }
 
     if(state.is_unlocked &&
+       Switch_sta_st.SWC == Switch_Mid &&
        Switch_sta_st.SWD == Switch_High &&
        Switch_sta_st.SWA == Switch_High)
     {
