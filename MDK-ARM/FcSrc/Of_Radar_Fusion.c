@@ -6,7 +6,6 @@
 #include "Kalman_Filter.h"
 #include "Freq_Detector.h"
 #include "Point_Navigation.h"
-#include <stdio.h>
 
 #define EXT_SENSOR_INVALID_S16 ((s16)0x8000)
 
@@ -18,16 +17,10 @@
 #define VELOCITY_FUSION_RADAR_LIMIT_CMPS    (300)
 #define VELOCITY_FUSION_FLOW_MIN_QUALITY    (250U)
 
-/* Set to 0 after commissioning to remove periodic serial debug output. */
-#define VELOCITY_FUSION_DEBUG_ENABLE         (1U)
-#define VELOCITY_FUSION_DEBUG_PERIOD_MS      (250U)
-
 volatile u32 ext_flow_send33_cnt = 0;
 volatile u32 ext_flow_send34_cnt = 0;
 volatile u8 alt_soruce = 0;
 volatile VelSensorSource_t vel_sen_sorce = Radar_vel;
-volatile VelocityFusionDiagnostics_t velocity_fusion_diagnostics;
-volatile u32 velocity_fusion_self_test_result;
 
 ex_sensor_data ex_sensor;
 
@@ -52,41 +45,6 @@ static s16 VelocityFusion_LimitS16(float value)
 static s32 VelocityFusion_AbsS16(s16 value)
 {
     return (value < 0) ? -(s32)value : (s32)value;
-}
-
-static void VelocityFusion_DebugPrint(void)
-{
-#if VELOCITY_FUSION_DEBUG_ENABLE
-    static u32 last_print_ms;
-    u32 now_ms = HAL_GetTick();
-
-    if((now_ms - last_print_ms) < VELOCITY_FUSION_DEBUG_PERIOD_MS)
-    {
-        return;
-    }
-    last_print_ms = now_ms;
-
-    printf("vel_fusion self=%lu swb=%u src=%u ctrl=%u "
-           "r=%d,%d of=%d,%d fused=%d,%d out=%d,%d "
-           "valid=%u,%u cnt=%lu,%lu,%lu\r\n",
-           (unsigned long)velocity_fusion_self_test_result,
-           (unsigned int)Switch_sta_st.SWB,
-           (unsigned int)vel_sen_sorce,
-           (unsigned int)point_navigation_enable,
-           velocity_fusion_diagnostics.radar_velocity_x,
-           velocity_fusion_diagnostics.radar_velocity_y,
-           velocity_fusion_diagnostics.optical_flow_velocity_x,
-           velocity_fusion_diagnostics.optical_flow_velocity_y,
-           velocity_fusion_diagnostics.fused_velocity_x,
-           velocity_fusion_diagnostics.fused_velocity_y,
-           velocity_fusion_diagnostics.output_velocity_x,
-           velocity_fusion_diagnostics.output_velocity_y,
-           (unsigned int)velocity_fusion_diagnostics.radar_valid,
-           (unsigned int)velocity_fusion_diagnostics.optical_flow_valid,
-           (unsigned long)velocity_fusion_diagnostics.radar_accept_count,
-           (unsigned long)velocity_fusion_diagnostics.optical_flow_accept_count,
-           (unsigned long)velocity_fusion_diagnostics.publish_count);
-#endif
 }
 
 static void GeneralVelocityFromRadarAndOpticalFlow(float dT_s)
@@ -142,27 +100,6 @@ static void GeneralVelocityFromRadarAndOpticalFlow(float dT_s)
                                 optical_flow_valid,
                                 dT_s);
 
-    velocity_fusion_diagnostics.radar_updated = radar_updated;
-    velocity_fusion_diagnostics.radar_valid = radar_valid;
-    velocity_fusion_diagnostics.optical_flow_updated = optical_flow_updated;
-    velocity_fusion_diagnostics.optical_flow_valid = optical_flow_valid;
-    velocity_fusion_diagnostics.radar_velocity_x = radar_velocity_x;
-    velocity_fusion_diagnostics.radar_velocity_y = radar_velocity_y;
-    velocity_fusion_diagnostics.optical_flow_velocity_x = optical_flow.fusion_flow_dx;
-    velocity_fusion_diagnostics.optical_flow_velocity_y = optical_flow.fusion_flow_dy;
-    velocity_fusion_diagnostics.fused_velocity_x =
-        VelocityFusion_LimitS16(velocity_fusion_filter.x.velocity);
-    velocity_fusion_diagnostics.fused_velocity_y =
-        VelocityFusion_LimitS16(velocity_fusion_filter.y.velocity);
-    if(radar_valid != 0U)
-    {
-        velocity_fusion_diagnostics.radar_accept_count++;
-    }
-    if(optical_flow_valid != 0U)
-    {
-        velocity_fusion_diagnostics.optical_flow_accept_count++;
-    }
-
     if(vel_sen_sorce == ano_of_vel)
     {
         /* Radar may still maintain the filter internally, but must not affect
@@ -189,11 +126,6 @@ static void GeneralVelocityFromRadarAndOpticalFlow(float dT_s)
             VelocityFusion_LimitS16(velocity_fusion_filter.y.velocity);
     }
     ex_sensor.vel_general.vel_data.velocity_cmps[2] = EXT_SENSOR_INVALID_S16;
-    velocity_fusion_diagnostics.output_velocity_x =
-        ex_sensor.vel_general.vel_data.velocity_cmps[0];
-    velocity_fusion_diagnostics.output_velocity_y =
-        ex_sensor.vel_general.vel_data.velocity_cmps[1];
-    velocity_fusion_diagnostics.publish_count++;
     Data.fun[0x33].wait_to_send = 1;
     ext_flow_send33_cnt++;
     FreqDetector_OnData(&JN_freq_detector[Data_stream_Vel_Fu]);
@@ -257,8 +189,6 @@ static void GeneralDistanceFromOpticalFlow(void)
 
 void ExtSensorFusion_Init(void)
 {
-    velocity_fusion_self_test_result = VelocityFusionKalman_SelfTest();
-
     VelocityFusionKalman_Init(&velocity_fusion_filter,
                               0.0f,
                               0.0f,
@@ -275,5 +205,4 @@ void ExtSensor_UpdateFromOpticalFlow(float dT_s)
 {
     GeneralVelocityFromRadarAndOpticalFlow(dT_s);
     GeneralDistanceFromOpticalFlow();
-    VelocityFusion_DebugPrint();
 }

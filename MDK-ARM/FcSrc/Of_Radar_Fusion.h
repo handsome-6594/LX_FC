@@ -15,28 +15,6 @@ typedef enum
 
 extern volatile VelSensorSource_t vel_sen_sorce;
 
-typedef struct
-{
-    volatile u8 radar_updated;
-    volatile u8 radar_valid;
-    volatile u8 optical_flow_updated;
-    volatile u8 optical_flow_valid;
-    volatile s16 radar_velocity_x;
-    volatile s16 radar_velocity_y;
-    volatile s16 optical_flow_velocity_x;
-    volatile s16 optical_flow_velocity_y;
-    volatile s16 fused_velocity_x;
-    volatile s16 fused_velocity_y;
-    volatile s16 output_velocity_x;
-    volatile s16 output_velocity_y;
-    volatile u32 radar_accept_count;
-    volatile u32 optical_flow_accept_count;
-    volatile u32 publish_count;
-}VelocityFusionDiagnostics_t;
-
-extern volatile VelocityFusionDiagnostics_t velocity_fusion_diagnostics;
-extern volatile u32 velocity_fusion_self_test_result;
-
 //0X30  GPS数据 
 typedef struct 
 {

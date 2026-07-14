@@ -201,20 +201,20 @@ static void H743_Received_Data_From_JetsonNano_Analysis(const u8 *data, u8 len)
         radar_pos_update_cnt++;
         update_Flag.Radar_Pos = 1;
 
-        // static u32 last_radar_pos_print_ms = 0;
-        // u32 now_ms = HAL_GetTick();
-        // if(now_ms - last_radar_pos_print_ms >= 200)
-        // {
-        //     last_radar_pos_print_ms = now_ms;
-        //     printf("radar pos raw=%d,%d,%d rel=%d,%d,%d cnt=%u\r\n",
-        //            raw_pos.pos_data.x_x100,
-        //            raw_pos.pos_data.y_x100,
-        //            raw_pos.pos_data.z_x100,
-        //            rel_pos.pos_data.x_x100,
-        //            rel_pos.pos_data.y_x100,
-        //            rel_pos.pos_data.z_x100,
-        //            radar_pos_update_cnt);
-        // }
+        static u32 last_radar_pos_print_ms = 0;
+        u32 now_ms = HAL_GetTick();
+        if(now_ms - last_radar_pos_print_ms >= 200)
+        {
+            last_radar_pos_print_ms = now_ms;
+            printf("radar pos raw=%d,%d,%d rel=%d,%d,%d cnt=%u\r\n",
+                   raw_pos.pos_data.x_x100,
+                   raw_pos.pos_data.y_x100,
+                   raw_pos.pos_data.z_x100,
+                   rel_pos.pos_data.x_x100,
+                   rel_pos.pos_data.y_x100,
+                   rel_pos.pos_data.z_x100,
+                   radar_pos_update_cnt);
+        }
     }
     //雷达里程计的速度数据
     else if(*(data + 2) == 0X02)

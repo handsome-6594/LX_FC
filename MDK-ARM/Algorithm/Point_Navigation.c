@@ -13,6 +13,9 @@
 #define POINT_NAV_TEST_TARGET_Z_X100   80
 #define POINT_NAV_TEST_TARGET_YAW_DEG  0
 #define POINT_NAV_SENSOR_TIMEOUT_MS    300
+#define POINT_NAV_DEBUG_ENABLE         (1U)
+#define POINT_NAV_DEBUG_PERIOD_MS      (200U)
+#define POINT_NAV_GATE_DEBUG_PERIOD_MS (500U)
 
 volatile _cmd_vel_sorce cmd_vel_sorce = Radar_Pid_vel;
 volatile u8 point_navigation_enable = 0;
@@ -26,6 +29,24 @@ FC_Stable_t point_navigation_stable = {
     .yaw_error_threshold = 7,
 };
 PointNavigationTarget_t point_navigation_target = {0};
+
+#if POINT_NAV_DEBUG_ENABLE
+static PID_t point_nav_debug_pid[PID_NUM];
+static u8 point_nav_debug_pid_inited;
+
+static void PointNav_DebugResetPreviewPid(void)
+{
+    point_nav_debug_pid[PID_X] = loc_pid[PID_X];
+    point_nav_debug_pid[PID_Y] = loc_pid[PID_Y];
+    point_nav_debug_pid[PID_Z] = loc_pid[PID_Z];
+    point_nav_debug_pid[PID_YAW] = loc_pid[PID_YAW];
+    PID_Reset(&point_nav_debug_pid[PID_X]);
+    PID_Reset(&point_nav_debug_pid[PID_Y]);
+    PID_Reset(&point_nav_debug_pid[PID_Z]);
+    PID_Reset(&point_nav_debug_pid[PID_YAW]);
+    point_nav_debug_pid_inited = 1;
+}
+#endif
 
 static s16 PointNav_LimitS16(float value, s16 min_value, s16 max_value)
 {
@@ -259,7 +280,9 @@ static u8 PointNav_RadarDataHealthy(void)
 static u8 PointNav_UpdateFromRadarPid(void)
 {
     static u8 last_radar_pos_update_cnt;
-    //static u32 last_debug_print_ms;
+#if POINT_NAV_DEBUG_ENABLE
+    static u32 last_debug_print_ms;
+#endif
     s16 vel_x;
     s16 vel_y;
     s16 vel_z;
@@ -295,28 +318,41 @@ static u8 PointNav_UpdateFromRadarPid(void)
 
     PointNav_RadarVelocityToBody(vel_x, vel_y, &body_vel_x, &body_vel_y);
 
-    // if(HAL_GetTick() - last_debug_print_ms >= 200)
-    // {
-    //     last_debug_print_ms = HAL_GetTick();
-    //     printf("pnav pos=%d,%d,%d tar=%d,%d,%d vr=%d,%d,%d vb=%d,%d,%d yaw=%.1f q=%.3f,%.3f,%.3f,%.3f\r\n",
-    //            Pos16_of_Radar.pos_data.x_x100,
-    //            Pos16_of_Radar.pos_data.y_x100,
-    //            Pos16_of_Radar.pos_data.z_x100,
-    //            point_navigation_target.target_x,
-    //            point_navigation_target.target_y,
-    //            point_navigation_target.target_z,
-    //            vel_x,
-    //            vel_y,
-    //            vel_z,
-    //            body_vel_x,
-    //            body_vel_y,
-    //            vel_z,
-    //            yaw_deg,
-    //            real_Radar_qua.qx,
-    //            real_Radar_qua.qy,
-    //            real_Radar_qua.qz,
-    //            real_Radar_qua.qw);
-    // }
+#if POINT_NAV_DEBUG_ENABLE
+    if(HAL_GetTick() - last_debug_print_ms >= POINT_NAV_DEBUG_PERIOD_MS)
+    {
+        s16 yaw_x10 = PointNav_LimitS16(yaw_deg * 10.0f, -32768, 32767);
+        s16 yaw_err_x10 = PointNav_LimitS16(PointNav_AngleErrorDeg((float)point_navigation_target.target_yaw,
+                                                                   yaw_deg) * 10.0f,
+                                            -32768,
+                                            32767);
+
+        last_debug_print_ms = HAL_GetTick();
+        printf("pnav_run pos=%d,%d,%d tar=%d,%d,%d err=%d,%d,%d "
+               "yaw_x10=%d yaw_err_x10=%d vr=%d,%d,%d body=%d,%d,%d "
+               "stable=%u,%u,%u\r\n",
+               Pos16_of_Radar.pos_data.x_x100,
+               Pos16_of_Radar.pos_data.y_x100,
+               Pos16_of_Radar.pos_data.z_x100,
+               point_navigation_target.target_x,
+               point_navigation_target.target_y,
+               point_navigation_target.target_z,
+               point_navigation_target.target_x - Pos16_of_Radar.pos_data.x_x100,
+               point_navigation_target.target_y - Pos16_of_Radar.pos_data.y_x100,
+               point_navigation_target.target_z - Pos16_of_Radar.pos_data.z_x100,
+               yaw_x10,
+               yaw_err_x10,
+               vel_x,
+               vel_y,
+               vel_z,
+               body_vel_x,
+               body_vel_y,
+               vel_z,
+               point_navigation_state.alt_stable,
+               point_navigation_state.center_stable,
+               point_navigation_state.yaw_stable);
+    }
+#endif
 
     PointNav_WriteRealtimeVelocity(body_vel_x, body_vel_y, vel_z, yaw_dps);
     update_Flag.Radar_PID_Cmd_Vel = 1;
@@ -341,6 +377,9 @@ static u8 PointNav_UpdateFromJnCmdVel(void)
 void PointNavigation_Init(void)
 {
     PID_Init();
+#if POINT_NAV_DEBUG_ENABLE
+    PointNav_DebugResetPreviewPid();
+#endif
     point_navigation_enable = 0;
     cmd_vel_sorce = Radar_Pid_vel;
 }
@@ -352,6 +391,9 @@ void PointNavigation_Start(void)
     PID_Reset(&loc_pid[PID_Z]);
     PID_Reset(&loc_pid[PID_YAW]);
     point_navigation_enable = 1;
+#if POINT_NAV_DEBUG_ENABLE
+    PointNav_DebugResetPreviewPid();
+#endif
 }
 
 void PointNavigation_Stop(void)
@@ -382,24 +424,111 @@ void PointNavigation_SetTarget(s16 target_x, s16 target_y, s16 target_z, s16 tar
 
 void PointNavigation_TestPointTask(void)
 {
-    //static u32 last_gate_print_ms;
+#if POINT_NAV_DEBUG_ENABLE
+    static u32 last_gate_print_ms;
+    static u32 last_preview_print_ms;
+    static u8 last_preview_pos_update_cnt;
+    static s16 preview_vel_x;
+    static s16 preview_vel_y;
+    static s16 preview_vel_z;
+    static s16 preview_yaw_dps;
+    static s16 preview_body_vel_x;
+    static s16 preview_body_vel_y;
+    static s16 preview_yaw_x10;
+    static s16 preview_yaw_err_x10;
+#endif
     u8 should_run = 0;
     u32 now_ms = HAL_GetTick();
+    u8 radar_healthy = PointNav_RadarDataHealthy();
 
-    // if(now_ms - last_gate_print_ms >= 500)
-    // {
-    //     last_gate_print_ms = now_ms;
-    //     printf("pnav_gate unlock=%u swa=%u swc=%u swd=%u src=%u pos_cnt=%u qua_cnt=%u healthy=%u en=%u\r\n",
-    //            state.is_unlocked,
-    //            Switch_sta_st.SWA,
-    //            Switch_sta_st.SWC,
-    //            Switch_sta_st.SWD,
-    //            cmd_vel_sorce,
-    //            radar_pos_update_cnt,
-    //            radar_qua_update_cnt,
-    //            PointNav_RadarDataHealthy(),
-    //            point_navigation_enable);
-    // }
+#if POINT_NAV_DEBUG_ENABLE
+    if(now_ms - last_gate_print_ms >= POINT_NAV_GATE_DEBUG_PERIOD_MS)
+    {
+        last_gate_print_ms = now_ms;
+        printf("pnav_gate unlock=%u swb=%u swc=%u swd=%u src=%u "
+               "pos_cnt=%u qua_cnt=%u healthy=%u en=%u\r\n",
+               state.is_unlocked,
+               Switch_sta_st.SWB,
+               Switch_sta_st.SWC,
+               Switch_sta_st.SWD,
+               cmd_vel_sorce,
+               radar_pos_update_cnt,
+               radar_qua_update_cnt,
+               radar_healthy,
+               point_navigation_enable);
+    }
+
+    if(point_navigation_enable == 0U && radar_healthy != 0U)
+    {
+        if(point_nav_debug_pid_inited == 0U)
+        {
+            PointNav_DebugResetPreviewPid();
+        }
+
+        if(last_preview_pos_update_cnt != radar_pos_update_cnt)
+        {
+            float yaw_deg;
+
+            last_preview_pos_update_cnt = radar_pos_update_cnt;
+            yaw_deg = PointNav_GetRadarYawDeg();
+            preview_vel_x = PointNav_LimitS16(PID_Update(&point_nav_debug_pid[PID_X],
+                                                         (float)POINT_NAV_TEST_TARGET_X_X100,
+                                                         (float)Pos16_of_Radar.pos_data.x_x100),
+                                              -100,
+                                              100);
+            preview_vel_y = PointNav_LimitS16(PID_Update(&point_nav_debug_pid[PID_Y],
+                                                         (float)POINT_NAV_TEST_TARGET_Y_X100,
+                                                         (float)Pos16_of_Radar.pos_data.y_x100),
+                                              -100,
+                                              100);
+            preview_vel_z = PointNav_LimitS16(PID_Update(&point_nav_debug_pid[PID_Z],
+                                                         (float)POINT_NAV_TEST_TARGET_Z_X100,
+                                                         (float)Pos16_of_Radar.pos_data.z_x100),
+                                              -100,
+                                              100);
+            preview_yaw_dps = PointNav_LimitS16(PID_UpdateYaw(&point_nav_debug_pid[PID_YAW],
+                                                              (float)POINT_NAV_TEST_TARGET_YAW_DEG,
+                                                              yaw_deg),
+                                                -200,
+                                                200);
+            PointNav_RadarVelocityToBody(preview_vel_x,
+                                         preview_vel_y,
+                                         &preview_body_vel_x,
+                                         &preview_body_vel_y);
+            preview_yaw_x10 = PointNav_LimitS16(yaw_deg * 10.0f, -32768, 32767);
+            preview_yaw_err_x10 = PointNav_LimitS16(PointNav_AngleErrorDeg((float)POINT_NAV_TEST_TARGET_YAW_DEG,
+                                                                           yaw_deg) * 10.0f,
+                                                    -32768,
+                                                    32767);
+        }
+
+        if(now_ms - last_preview_print_ms >= POINT_NAV_DEBUG_PERIOD_MS)
+        {
+            last_preview_print_ms = now_ms;
+            printf("pnav_preview pos=%d,%d,%d tar=%d,%d,%d err=%d,%d,%d "
+                   "yaw_x10=%d yaw_err_x10=%d vr=%d,%d,%d body=%d,%d,%d yaw_dps=%d "
+                   "note=no_send_0x41\r\n",
+                   Pos16_of_Radar.pos_data.x_x100,
+                   Pos16_of_Radar.pos_data.y_x100,
+                   Pos16_of_Radar.pos_data.z_x100,
+                   POINT_NAV_TEST_TARGET_X_X100,
+                   POINT_NAV_TEST_TARGET_Y_X100,
+                   POINT_NAV_TEST_TARGET_Z_X100,
+                   POINT_NAV_TEST_TARGET_X_X100 - Pos16_of_Radar.pos_data.x_x100,
+                   POINT_NAV_TEST_TARGET_Y_X100 - Pos16_of_Radar.pos_data.y_x100,
+                   POINT_NAV_TEST_TARGET_Z_X100 - Pos16_of_Radar.pos_data.z_x100,
+                   preview_yaw_x10,
+                   preview_yaw_err_x10,
+                   preview_vel_x,
+                   preview_vel_y,
+                   preview_vel_z,
+                   preview_body_vel_x,
+                   preview_body_vel_y,
+                   preview_vel_z,
+                   preview_yaw_dps);
+        }
+    }
+#endif
 
     if(state.is_unlocked &&
        Switch_sta_st.SWC == Switch_Mid &&
@@ -408,7 +537,7 @@ void PointNavigation_TestPointTask(void)
     {
         cmd_vel_sorce = Radar_Pid_vel;
 
-        if(cmd_vel_sorce == Radar_Pid_vel && PointNav_RadarDataHealthy())
+        if(cmd_vel_sorce == Radar_Pid_vel && radar_healthy)
         {
             should_run = 1;
         }
