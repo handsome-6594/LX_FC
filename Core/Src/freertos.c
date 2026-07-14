@@ -419,6 +419,7 @@ void StartOpticalFlowTask(void *argument)
   uint32_t last_check_ms = HAL_GetTick();
 
   OpticalFlow_Init();
+  ExtSensorFusion_Init();
   DrvUart2_Fifo_Init();
   DrvUart2_RegisterNotifyTask(xTaskGetCurrentTaskHandle());//光流任务注册自己
   DrvUart2_Receive_Enable();

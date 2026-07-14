@@ -909,6 +909,16 @@
               <FileType>5</FileType>
               <FilePath>.\Algorithm\Point_Navigation.h</FilePath>
             </File>
+            <File>
+              <FileName>Kalman_Filter.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Algorithm\Kalman_Filter.c</FilePath>
+            </File>
+            <File>
+              <FileName>Kalman_Filter.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Algorithm\Kalman_Filter.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

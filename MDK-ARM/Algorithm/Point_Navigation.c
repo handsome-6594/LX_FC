@@ -259,7 +259,7 @@ static u8 PointNav_RadarDataHealthy(void)
 static u8 PointNav_UpdateFromRadarPid(void)
 {
     static u8 last_radar_pos_update_cnt;
-    static u32 last_debug_print_ms;
+    //static u32 last_debug_print_ms;
     s16 vel_x;
     s16 vel_y;
     s16 vel_z;
@@ -295,28 +295,28 @@ static u8 PointNav_UpdateFromRadarPid(void)
 
     PointNav_RadarVelocityToBody(vel_x, vel_y, &body_vel_x, &body_vel_y);
 
-    if(HAL_GetTick() - last_debug_print_ms >= 200)
-    {
-        last_debug_print_ms = HAL_GetTick();
-        printf("pnav pos=%d,%d,%d tar=%d,%d,%d vr=%d,%d,%d vb=%d,%d,%d yaw=%.1f q=%.3f,%.3f,%.3f,%.3f\r\n",
-               Pos16_of_Radar.pos_data.x_x100,
-               Pos16_of_Radar.pos_data.y_x100,
-               Pos16_of_Radar.pos_data.z_x100,
-               point_navigation_target.target_x,
-               point_navigation_target.target_y,
-               point_navigation_target.target_z,
-               vel_x,
-               vel_y,
-               vel_z,
-               body_vel_x,
-               body_vel_y,
-               vel_z,
-               yaw_deg,
-               real_Radar_qua.qx,
-               real_Radar_qua.qy,
-               real_Radar_qua.qz,
-               real_Radar_qua.qw);
-    }
+    // if(HAL_GetTick() - last_debug_print_ms >= 200)
+    // {
+    //     last_debug_print_ms = HAL_GetTick();
+    //     printf("pnav pos=%d,%d,%d tar=%d,%d,%d vr=%d,%d,%d vb=%d,%d,%d yaw=%.1f q=%.3f,%.3f,%.3f,%.3f\r\n",
+    //            Pos16_of_Radar.pos_data.x_x100,
+    //            Pos16_of_Radar.pos_data.y_x100,
+    //            Pos16_of_Radar.pos_data.z_x100,
+    //            point_navigation_target.target_x,
+    //            point_navigation_target.target_y,
+    //            point_navigation_target.target_z,
+    //            vel_x,
+    //            vel_y,
+    //            vel_z,
+    //            body_vel_x,
+    //            body_vel_y,
+    //            vel_z,
+    //            yaw_deg,
+    //            real_Radar_qua.qx,
+    //            real_Radar_qua.qy,
+    //            real_Radar_qua.qz,
+    //            real_Radar_qua.qw);
+    // }
 
     PointNav_WriteRealtimeVelocity(body_vel_x, body_vel_y, vel_z, yaw_dps);
     update_Flag.Radar_PID_Cmd_Vel = 1;
@@ -382,29 +382,29 @@ void PointNavigation_SetTarget(s16 target_x, s16 target_y, s16 target_z, s16 tar
 
 void PointNavigation_TestPointTask(void)
 {
-    static u32 last_gate_print_ms;
+    //static u32 last_gate_print_ms;
     u8 should_run = 0;
     u32 now_ms = HAL_GetTick();
 
-    if(now_ms - last_gate_print_ms >= 500)
-    {
-        last_gate_print_ms = now_ms;
-        printf("pnav_gate unlock=%u swa=%u swc=%u swd=%u src=%u pos_cnt=%u qua_cnt=%u healthy=%u en=%u\r\n",
-               state.is_unlocked,
-               Switch_sta_st.SWA,
-               Switch_sta_st.SWC,
-               Switch_sta_st.SWD,
-               cmd_vel_sorce,
-               radar_pos_update_cnt,
-               radar_qua_update_cnt,
-               PointNav_RadarDataHealthy(),
-               point_navigation_enable);
-    }
+    // if(now_ms - last_gate_print_ms >= 500)
+    // {
+    //     last_gate_print_ms = now_ms;
+    //     printf("pnav_gate unlock=%u swa=%u swc=%u swd=%u src=%u pos_cnt=%u qua_cnt=%u healthy=%u en=%u\r\n",
+    //            state.is_unlocked,
+    //            Switch_sta_st.SWA,
+    //            Switch_sta_st.SWC,
+    //            Switch_sta_st.SWD,
+    //            cmd_vel_sorce,
+    //            radar_pos_update_cnt,
+    //            radar_qua_update_cnt,
+    //            PointNav_RadarDataHealthy(),
+    //            point_navigation_enable);
+    // }
 
     if(state.is_unlocked &&
        Switch_sta_st.SWC == Switch_Mid &&
        Switch_sta_st.SWD == Switch_High &&
-       Switch_sta_st.SWA == Switch_High)
+       Switch_sta_st.SWB == Switch_Low)
     {
         cmd_vel_sorce = Radar_Pid_vel;
 
@@ -459,4 +459,3 @@ void PointNavigation_Update(void)
         update_Flag.Camera_PID_Cmd_Vel = 0;
     }
 }
-

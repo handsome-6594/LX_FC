@@ -7,6 +7,36 @@ extern volatile u32 ext_flow_send33_cnt;
 extern volatile u32 ext_flow_send34_cnt;
 extern volatile u8 alt_soruce;
 
+typedef enum
+{
+    Radar_vel = 0, /* Radar + optical-flow Kalman fusion. */
+    ano_of_vel     /* Anonymous optical-flow velocity only. */
+}VelSensorSource_t;
+
+extern volatile VelSensorSource_t vel_sen_sorce;
+
+typedef struct
+{
+    volatile u8 radar_updated;
+    volatile u8 radar_valid;
+    volatile u8 optical_flow_updated;
+    volatile u8 optical_flow_valid;
+    volatile s16 radar_velocity_x;
+    volatile s16 radar_velocity_y;
+    volatile s16 optical_flow_velocity_x;
+    volatile s16 optical_flow_velocity_y;
+    volatile s16 fused_velocity_x;
+    volatile s16 fused_velocity_y;
+    volatile s16 output_velocity_x;
+    volatile s16 output_velocity_y;
+    volatile u32 radar_accept_count;
+    volatile u32 optical_flow_accept_count;
+    volatile u32 publish_count;
+}VelocityFusionDiagnostics_t;
+
+extern volatile VelocityFusionDiagnostics_t velocity_fusion_diagnostics;
+extern volatile u32 velocity_fusion_self_test_result;
+
 //0X30  GPS数据 
 typedef struct 
 {
@@ -68,6 +98,7 @@ typedef struct
 
 extern ex_sensor_data ex_sensor;
 
+void ExtSensorFusion_Init(void);
 void ExtSensor_UpdateFromOpticalFlow(float dT_s);
 
 #endif
