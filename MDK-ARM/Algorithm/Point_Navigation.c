@@ -533,7 +533,7 @@ void PointNavigation_TestPointTask(void)
     if(state.is_unlocked &&
        Switch_sta_st.SWC == Switch_Mid &&
        Switch_sta_st.SWD == Switch_High &&
-       Switch_sta_st.SWB == Switch_Low)
+       Switch_sta_st.SWB == Switch_High)
     {
         cmd_vel_sorce = Radar_Pid_vel;
 

@@ -19,9 +19,9 @@ enum
 
 typedef enum
 {
-    Switch_High = 0,
+    Switch_Low = 0,
     Switch_Mid = 1,
-    Switch_Low = 2,
+    Switch_High = 2,
 }SwitchState;
 
 typedef struct

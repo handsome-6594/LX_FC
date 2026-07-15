@@ -64,6 +64,7 @@ void VelocityFusionKalman_SetNoise(VelocityFusionKalman_t *filter,
     filter->optical_flow_noise = VelocityKalman_PositiveVariance(optical_flow_noise);
 }
 
+//更新卡尔曼滤波值
 void VelocityFusionKalman_Update(VelocityFusionKalman_t *filter,
                                  float radar_velocity_x,
                                  float radar_velocity_y,

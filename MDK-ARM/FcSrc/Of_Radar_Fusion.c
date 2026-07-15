@@ -6,6 +6,7 @@
 #include "Kalman_Filter.h"
 #include "Freq_Detector.h"
 #include "Point_Navigation.h"
+#include <stdio.h>
 
 #define EXT_SENSOR_INVALID_S16 ((s16)0x8000)
 
@@ -16,6 +17,8 @@
 #define VELOCITY_FUSION_OPTICAL_FLOW_NOISE  (100.0f)
 #define VELOCITY_FUSION_RADAR_LIMIT_CMPS    (300)
 #define VELOCITY_FUSION_FLOW_MIN_QUALITY    (250U)
+#define VELOCITY_FUSION_FLOW_DEBUG_ENABLE   (1U)
+#define VELOCITY_FUSION_FLOW_DEBUG_PERIOD_MS (200U)
 
 volatile u32 ext_flow_send33_cnt = 0;
 volatile u32 ext_flow_send34_cnt = 0;
@@ -62,8 +65,8 @@ static void GeneralVelocityFromRadarAndOpticalFlow(float dT_s)
         return;
     }
 
-    /* SWB high: optical flow only; SWB middle/low: fused velocity. */
-    vel_sen_sorce = (Switch_sta_st.SWB == Switch_High) ? ano_of_vel : Radar_vel;
+    //SWB低位的时候只用光流速度，中位和高位雷达和光流速度融合
+    vel_sen_sorce = (Switch_sta_st.SWB == Switch_Low) ? ano_of_vel : Radar_vel;
 
     optical_flow_updated = (last_flow_update_cnt != optical_flow.flow_update_cnt) ? 1U : 0U;
     if(optical_flow_updated != 0U)
