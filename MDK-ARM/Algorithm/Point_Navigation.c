@@ -11,12 +11,7 @@
 #include <math.h>
 #include <stdio.h>
 
-#define POINT_NAV_TEST_TARGET_X_X100   100
-#define POINT_NAV_TEST_TARGET_Y_X100   0
-#define POINT_NAV_TEST_TARGET_Z_X100   80
-#define POINT_NAV_TEST_TARGET_YAW_DEG  0
 #define POINT_NAV_SENSOR_TIMEOUT_MS    300
-#define POINT_NAV_ALLOW_FLIGHT_TEST    (0U)
 #define POINT_NAV_ENABLE_YAW_CONTROL   (0U)
 #define POINT_NAV_YAW_DIR_TEST_ENABLE  (0U)
 #define POINT_NAV_YAW_DIR_TEST_DPS     (10)
@@ -36,6 +31,13 @@ FC_Stable_t point_navigation_stable = {
     .yaw_error_threshold = 7,
 };
 PointNavigationTarget_t point_navigation_target = {0};
+
+static const PointNavigationTarget_t point_navigation_fixed_target = {
+    .target_x = 100,
+    .target_y = 0,
+    .target_z = 50,
+    .target_yaw = 0,
+};
 
 typedef struct
 {
@@ -479,10 +481,7 @@ static u8 PointNav_UpdateFromRadarPid(const PointNav_RadarSnapshot_t *snapshot)
                                          (float)point_navigation_target.target_y,
                                          (float)snapshot->pos.y_x100),
                               -100, 100);
-    vel_z = PointNav_LimitS16(PID_Update(&loc_pid[PID_Z],
-                                         (float)point_navigation_target.target_z,
-                                         (float)snapshot->pos.z_x100),
-                              -100, 100);
+    vel_z = 0;
     yaw_pid_out = PID_UpdateYaw(&loc_pid[PID_YAW],
                                 (float)point_navigation_target.target_yaw,
                                 yaw_deg);
@@ -579,23 +578,18 @@ void PointNavigation_SetTarget(s16 target_x, s16 target_y, s16 target_z, s16 tar
 //测试用，可以删
 void PointNavigation_TestPointTask(void)
 {
-#if POINT_NAV_ALLOW_FLIGHT_TEST
     u8 should_run = 0;
-    u8 radar_healthy;
 
-    radar_healthy = PointNav_RadarDataHealthy();
-
-    if(state.is_unlocked &&
+    if(RemoteControl_IsSignalLost() == 0U &&
+       state.is_unlocked != 0U &&
+       RC_MotorIsUnlocked() != 0U &&
        Switch_sta_st.SWC == Switch_Mid &&
        Switch_sta_st.SWD == Switch_High &&
-       Switch_sta_st.SWB == Switch_High)
+       Switch_sta_st.SWB == Switch_Low &&
+       PointNav_RadarDataHealthy() != 0U)
     {
         cmd_vel_sorce = Radar_Pid_vel;
-
-        if(cmd_vel_sorce == Radar_Pid_vel && radar_healthy)
-        {
-            should_run = 1;
-        }
+        should_run = 1;
     }
 
     if(should_run)
@@ -605,16 +599,15 @@ void PointNavigation_TestPointTask(void)
             PointNavigation_Start();
         }
 
-        PointNavigation_SetTarget(POINT_NAV_TEST_TARGET_X_X100,
-                                  POINT_NAV_TEST_TARGET_Y_X100,
-                                  POINT_NAV_TEST_TARGET_Z_X100,
-                                  POINT_NAV_TEST_TARGET_YAW_DEG);
+        PointNavigation_SetTarget(point_navigation_fixed_target.target_x,
+                                  point_navigation_fixed_target.target_y,
+                                  point_navigation_fixed_target.target_z,
+                                  point_navigation_fixed_target.target_yaw);
     }
     else if(point_navigation_enable)
     {
         PointNavigation_Stop();
     }
-#endif
 }
 
 #if POINT_NAV_YAW_DIR_TEST_ENABLE
