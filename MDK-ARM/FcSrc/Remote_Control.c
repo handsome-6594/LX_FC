@@ -13,6 +13,9 @@ volatile u32 sbus_frame_cnt = 0;
 
 rc_channel_un Channel_of_rc;
 realtime_ctrl_un ctrl_of_realtime;
+realtime_ctrl_un rc_ctrl_cmd;
+realtime_ctrl_un nav_ctrl_cmd;
+realtime_ctrl_un failsafe_ctrl_cmd;
 SwitchStateSet Switch_sta_st;
 
 static u8 sbus_dma_buf[SBUS_DMA_BUF_LEN];
@@ -162,6 +165,10 @@ void RemoteControl_InitDefault(void)
     ctrl_of_realtime.data.vel_x = 0;
     ctrl_of_realtime.data.vel_y = 0;
     ctrl_of_realtime.data.vel_z = 0;
+
+    rc_ctrl_cmd = ctrl_of_realtime;
+    nav_ctrl_cmd = ctrl_of_realtime;
+    failsafe_ctrl_cmd = ctrl_of_realtime;
 }
 
 //上电初始化为默认值 之后启用串口8的DMA接收

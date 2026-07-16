@@ -64,6 +64,9 @@ typedef union
 
 extern rc_channel_un Channel_of_rc;
 extern realtime_ctrl_un ctrl_of_realtime;
+extern realtime_ctrl_un rc_ctrl_cmd;
+extern realtime_ctrl_un nav_ctrl_cmd;
+extern realtime_ctrl_un failsafe_ctrl_cmd;
 extern SwitchStateSet Switch_sta_st;
 extern volatile u32 sbus_dma_byte_cnt;
 extern volatile u32 sbus_frame_cnt;

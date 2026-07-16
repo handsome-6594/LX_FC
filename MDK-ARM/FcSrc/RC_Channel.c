@@ -232,14 +232,13 @@ void RC_Data_Task(float dT_s)
 
     if(RemoteControl_IsSignalLost())
     {
-        ctrl_of_realtime.data.roll = 0;
-        ctrl_of_realtime.data.pitch = 0;
-        ctrl_of_realtime.data.throttle = FAILSAFE_THROTTLE;
-        ctrl_of_realtime.data.yaw_dps = 0;
-        ctrl_of_realtime.data.vel_x = 0;
-        ctrl_of_realtime.data.vel_y = 0;
-        ctrl_of_realtime.data.vel_z = 0;
-        Data.fun[0x41].wait_to_send = 1;
+        failsafe_ctrl_cmd.data.roll = 0;
+        failsafe_ctrl_cmd.data.pitch = 0;
+        failsafe_ctrl_cmd.data.throttle = FAILSAFE_THROTTLE;
+        failsafe_ctrl_cmd.data.yaw_dps = 0;
+        failsafe_ctrl_cmd.data.vel_x = 0;
+        failsafe_ctrl_cmd.data.vel_y = 0;
+        failsafe_ctrl_cmd.data.vel_z = 0;
         return;
     }
 
@@ -260,15 +259,13 @@ void RC_Data_Task(float dT_s)
         yaw = 0;
     }
 
-    ctrl_of_realtime.data.roll = (s16)((s32)roll * MAX_ANGLE / 460);
-    ctrl_of_realtime.data.pitch = (s16)(-((s32)pitch * MAX_ANGLE / 460));
-    ctrl_of_realtime.data.throttle = throttle;
-    ctrl_of_realtime.data.yaw_dps = (s16)(-((s32)yaw * MAX_YAW_DPS / 420));
-    ctrl_of_realtime.data.vel_x = 0;
-    ctrl_of_realtime.data.vel_y = 0;
-    ctrl_of_realtime.data.vel_z = 0;
-
-    Data.fun[0x41].wait_to_send = 1;
+    rc_ctrl_cmd.data.roll = (s16)((s32)roll * MAX_ANGLE / 460);
+    rc_ctrl_cmd.data.pitch = (s16)(-((s32)pitch * MAX_ANGLE / 460));
+    rc_ctrl_cmd.data.throttle = throttle;
+    rc_ctrl_cmd.data.yaw_dps = (s16)(-((s32)yaw * MAX_YAW_DPS / 420));
+    rc_ctrl_cmd.data.vel_x = 0;
+    rc_ctrl_cmd.data.vel_y = 0;
+    rc_ctrl_cmd.data.vel_z = 0;
 }
 
 void ESC_Output(u8 unlocked)

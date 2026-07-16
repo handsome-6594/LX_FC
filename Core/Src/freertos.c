@@ -299,23 +299,11 @@ void StartOledTestTask(void *argument)
 
 void StartpwmPrintTask(void *argument)
 {
-   pwm_value pwm = {0};
   // uint16_t print_cnt = 0;
-   uint8_t has_new_pwm = 0;
   uint8_t last_lx_unlocked = 0;
 
   for(;;)
   {
-    if(pwm_update_flag)
-    {
-      taskENTER_CRITICAL();
-      pwm = pwm_to_esc;
-      pwm_update_flag = 0;
-      taskEXIT_CRITICAL();
-
-      has_new_pwm = 1;
-    }
-
     if(last_lx_unlocked && !state.is_unlocked)
     {
       RC_MotorForceLock();
@@ -363,7 +351,6 @@ void StartpwmPrintTask(void *argument)
 void Startuart4LXTask(void *argument)
 {
   (void)argument;
-  uint32_t last_swc_print_ms = 0;
   uint32_t last_bat_send_ms = 0;
 
   Data_Init();

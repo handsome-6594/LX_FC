@@ -10,7 +10,7 @@
 
 #define EXT_SENSOR_INVALID_S16 ((s16)0x8000)
 
-/* All velocity values in this module use cm/s. */
+//单位是cm/s
 #define VELOCITY_FUSION_INITIAL_COVARIANCE  (100.0f)
 #define VELOCITY_FUSION_PROCESS_NOISE       (25.0f)
 #define VELOCITY_FUSION_RADAR_NOISE         (25.0f)
