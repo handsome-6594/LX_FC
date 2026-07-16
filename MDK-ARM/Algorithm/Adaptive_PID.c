@@ -71,7 +71,7 @@ void PID_Init(void)
 
     loc_pid[PID_YAW].kp = 0.35f;
     loc_pid[PID_YAW].ki = 0.00f;
-    loc_pid[PID_YAW].kd = 0.10f;
+    loc_pid[PID_YAW].kd = 0.00f;
     loc_pid[PID_YAW].output_min = -30.0f;
     loc_pid[PID_YAW].output_max = 30.0f;
     loc_pid[PID_YAW].integral_min = -5.0f;

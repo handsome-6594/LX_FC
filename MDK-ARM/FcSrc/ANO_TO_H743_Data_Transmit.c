@@ -4,6 +4,7 @@
 #include "Of_Radar_Fusion.h"
 #include "Remote_Control.h"
 #include "Point_Navigation.h"
+#include "RC_Channel.h"
 #include "Drv_Uart.h"
 
 Data_Transmit Data;
@@ -415,7 +416,7 @@ static void Send_Data_Buffer(u8 frame_num, frame_pack *pack)
 
         case 0X40://遥控器通道的数据
         {
-            if(point_navigation_enable)
+            if(point_navigation_enable && RC_MotorIsUnlocked() && state.is_unlocked)
             {
                 rc_channel_un rc = Channel_of_rc;
 

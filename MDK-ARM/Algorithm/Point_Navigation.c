@@ -5,9 +5,11 @@
 #include "FC_State.h"
 #include "JetsonNano_Data_Transmit.h"
 #include "Remote_Control.h"
+#include "RC_Channel.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include <math.h>
+#include <stdio.h>
 
 #define POINT_NAV_TEST_TARGET_X_X100   100
 #define POINT_NAV_TEST_TARGET_Y_X100   0
@@ -16,6 +18,11 @@
 #define POINT_NAV_SENSOR_TIMEOUT_MS    300
 #define POINT_NAV_ALLOW_FLIGHT_TEST    (0U)
 #define POINT_NAV_ENABLE_YAW_CONTROL   (0U)
+#define POINT_NAV_YAW_DIR_TEST_ENABLE  (1U)
+#define POINT_NAV_YAW_DIR_TEST_DPS     (10)
+#define POINT_NAV_YAW_DIR_TEST_PRINT_MS (200U)
+#define POINT_NAV_YAW_PID_DEBUG_ENABLE (1U)
+#define POINT_NAV_YAW_PID_DEBUG_PRINT_MS (200U)
 
 volatile _cmd_vel_sorce cmd_vel_sorce = Radar_Pid_vel;
 volatile u8 point_navigation_enable = 0;
@@ -117,6 +124,37 @@ static float PointNav_GetRadarYawDeg(const Radar_qua *qua)
     return -atan2f(2.0f * qx * qy + 2.0f * qz * qw,
                    -2.0f * qy * qy - 2.0f * qz * qz + 1.0f) * 57.2957795f;
 }
+
+#if POINT_NAV_YAW_PID_DEBUG_ENABLE
+static s32 PointNav_FloatToX100(float value)
+{
+    value *= 100.0f;
+    return (s32)((value >= 0.0f) ? (value + 0.5f) : (value - 0.5f));
+}
+
+static void PointNav_PrintYawPidDebug(float target_yaw_deg,
+                                      float yaw_deg,
+                                      float yaw_error_deg,
+                                      float yaw_pid_out,
+                                      s16 cmd_yaw_dps)
+{
+    static u32 last_print_ms;
+    u32 now_ms = HAL_GetTick();
+
+    if((now_ms - last_print_ms) < POINT_NAV_YAW_PID_DEBUG_PRINT_MS)
+    {
+        return;
+    }
+
+    last_print_ms = now_ms;
+    printf("yaw_pid target=%d cur=%d err=%d out=%d cmd=%d\r\n",
+           (int)PointNav_FloatToX100(target_yaw_deg),
+           (int)PointNav_FloatToX100(yaw_deg),
+           (int)PointNav_FloatToX100(yaw_error_deg),
+           (int)PointNav_FloatToX100(yaw_pid_out),
+           (int)cmd_yaw_dps);
+}
+#endif
 
 
 //把雷达坐标系的速度转换成机体坐标系的速度
@@ -305,6 +343,11 @@ static u8 PointNav_CanUseNavigationCmd(void)
         return 0;
     }
 
+    if(RC_MotorIsUnlocked() == 0)
+    {
+        return 0;
+    }
+
     if(cmd_vel_sorce == Radar_Pid_vel)
     {
         return PointNav_RadarDataHealthy();
@@ -411,6 +454,8 @@ static u8 PointNav_UpdateFromRadarPid(const PointNav_RadarSnapshot_t *snapshot)
     s16 body_vel_x;
     s16 body_vel_y;
     float yaw_deg;
+    float yaw_error_deg;
+    float yaw_pid_out;
 
     if(snapshot == 0)
     {
@@ -425,6 +470,7 @@ static u8 PointNav_UpdateFromRadarPid(const PointNav_RadarSnapshot_t *snapshot)
     last_radar_pos_update_cnt = snapshot->pos_update_cnt;
 
     yaw_deg = PointNav_GetRadarYawDeg(&snapshot->qua);
+    yaw_error_deg = PointNav_AngleErrorDeg((float)point_navigation_target.target_yaw, yaw_deg);
     vel_x = PointNav_LimitS16(PID_Update(&loc_pid[PID_X],
                                          (float)point_navigation_target.target_x,
                                          (float)snapshot->pos.x_x100),
@@ -437,12 +483,19 @@ static u8 PointNav_UpdateFromRadarPid(const PointNav_RadarSnapshot_t *snapshot)
                                          (float)point_navigation_target.target_z,
                                          (float)snapshot->pos.z_x100),
                               -100, 100);
-    yaw_dps = PointNav_LimitS16(PID_UpdateYaw(&loc_pid[PID_YAW],
-                                              (float)point_navigation_target.target_yaw,
-                                              yaw_deg),
-                                -200, 200);
+    yaw_pid_out = PID_UpdateYaw(&loc_pid[PID_YAW],
+                                (float)point_navigation_target.target_yaw,
+                                yaw_deg);
+    yaw_dps = PointNav_LimitS16(yaw_pid_out, -200, 200);
 #if POINT_NAV_ENABLE_YAW_CONTROL == 0U
     yaw_dps = 0;
+#endif
+#if POINT_NAV_YAW_PID_DEBUG_ENABLE
+    PointNav_PrintYawPidDebug((float)point_navigation_target.target_yaw,
+                              yaw_deg,
+                              yaw_error_deg,
+                              yaw_pid_out,
+                              yaw_dps);
 #endif
 
     PointNav_RadarVelocityToBody(&snapshot->qua, vel_x, vel_y, &body_vel_x, &body_vel_y);
@@ -564,10 +617,77 @@ void PointNavigation_TestPointTask(void)
 #endif
 }
 
+#if POINT_NAV_YAW_DIR_TEST_ENABLE
+static u8 PointNav_YawDirectionTestUpdate(void)
+{
+    static u8 was_active;
+    static u32 last_print_ms;
+    u32 now_ms = HAL_GetTick();
+    u8 active;
+
+    active = (RemoteControl_IsSignalLost() == 0U) &&
+             (state.is_unlocked != 0U) &&
+             (RC_MotorIsUnlocked() != 0U) &&
+             (Switch_sta_st.SWC == Switch_Mid) &&
+             (Switch_sta_st.SWD == Switch_High) &&
+             (Switch_sta_st.SWB == Switch_High);
+
+    if(active == 0U)
+    {
+        if(was_active != 0U)
+        {
+            point_navigation_enable = 0;
+            PointNav_ClearRealtimeVelocity();
+            PointNav_RealtimeControlMuxUpdate();
+            printf("yaw_dir_test stop\r\n");
+        }
+
+        was_active = 0;
+        return 0;
+    }
+
+    if(was_active == 0U)
+    {
+        was_active = 1;
+        last_print_ms = 0;
+        printf("yaw_dir_test start\r\n");
+    }
+
+    point_navigation_enable = 1;
+    cmd_vel_sorce = JN_Cmd_vel;
+    PointNav_WriteRealtimeVelocity(0, 0, 0, POINT_NAV_YAW_DIR_TEST_DPS);
+    PointNav_RealtimeControlMuxUpdate();
+
+    if((now_ms - last_print_ms) >= POINT_NAV_YAW_DIR_TEST_PRINT_MS)
+    {
+        last_print_ms = now_ms;
+        printf("yaw_dir_test cmd=%d tx=%d bytes=%02X,%02X rc=%d pwm=%u,%u,%u,%u\r\n",
+               POINT_NAV_YAW_DIR_TEST_DPS,
+               ctrl_of_realtime.data.yaw_dps,
+               (unsigned int)ctrl_of_realtime.byte[6],
+               (unsigned int)ctrl_of_realtime.byte[7],
+               rc_ctrl_cmd.data.yaw_dps,
+               (unsigned int)pwm_to_esc.pwm_value1,
+               (unsigned int)pwm_to_esc.pwm_value2,
+               (unsigned int)pwm_to_esc.pwm_value3,
+               (unsigned int)pwm_to_esc.pwm_value4);
+    }
+
+    return 1;
+}
+#endif
+
 //导航主循环函数
 void PointNavigation_Update(void)
 {
     PointNav_RadarSnapshot_t snapshot;
+
+#if POINT_NAV_YAW_DIR_TEST_ENABLE
+    if(PointNav_YawDirectionTestUpdate() != 0U)
+    {
+        return;
+    }
+#endif
 
     if(point_navigation_enable == 0)
     {
@@ -575,7 +695,7 @@ void PointNavigation_Update(void)
         return;
     }
 
-    if(RemoteControl_IsSignalLost() || state.is_unlocked == 0)
+    if(RemoteControl_IsSignalLost() || state.is_unlocked == 0 || RC_MotorIsUnlocked() == 0)
     {
         PointNavigation_Stop();
         PointNav_RealtimeControlMuxUpdate();
