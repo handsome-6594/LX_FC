@@ -53,3 +53,7 @@
 323232\of_radar_fusion.o: .\DriversMCU\Drv_led.h
 323232\of_radar_fusion.o: FcSrc\JetsonNano_Data_Transmit.h
 323232\of_radar_fusion.o: FcSrc\Remote_Control.h
+323232\of_radar_fusion.o: .\Algorithm\Kalman_Filter.h
+323232\of_radar_fusion.o: .\Algorithm\Freq_Detector.h
+323232\of_radar_fusion.o: .\Algorithm\Point_Navigation.h
+323232\of_radar_fusion.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h

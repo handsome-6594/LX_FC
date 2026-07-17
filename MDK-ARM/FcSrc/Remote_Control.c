@@ -169,6 +169,13 @@ void RemoteControl_InitDefault(void)
     rc_ctrl_cmd = ctrl_of_realtime;
     nav_ctrl_cmd = ctrl_of_realtime;
     failsafe_ctrl_cmd = ctrl_of_realtime;
+
+    Switch_sta_st.SWA = Switch_Mid;
+    Switch_sta_st.SWB = Switch_Mid;
+    Switch_sta_st.SWC = Switch_Mid;
+    Switch_sta_st.SWD = Switch_Mid;
+    Switch_sta_st.VRA = Switch_Mid;
+    Switch_sta_st.VRB = Switch_Mid;
 }
 
 //上电初始化为默认值 之后启用串口8的DMA接收

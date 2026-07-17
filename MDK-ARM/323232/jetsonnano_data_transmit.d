@@ -54,3 +54,17 @@
 323232\jetsonnano_data_transmit.o: FcSrc\Radar_Position.h
 323232\jetsonnano_data_transmit.o: FcSrc\Of_Radar_Fusion.h
 323232\jetsonnano_data_transmit.o: .\Protocol\Optical_Flow_Sensor.h
+323232\jetsonnano_data_transmit.o: .\Algorithm\Freq_Detector.h
+323232\jetsonnano_data_transmit.o: ../Core/Inc/usart.h
+323232\jetsonnano_data_transmit.o: .\Algorithm\Map_Update.h
+323232\jetsonnano_data_transmit.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdbool.h
+323232\jetsonnano_data_transmit.o: .\DriversMCU\Drv_Uart.h
+323232\jetsonnano_data_transmit.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
+323232\jetsonnano_data_transmit.o: ../Core/Inc/FreeRTOSConfig.h
+323232\jetsonnano_data_transmit.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
+323232\jetsonnano_data_transmit.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/portable.h
+323232\jetsonnano_data_transmit.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h
+323232\jetsonnano_data_transmit.o: ../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F/portmacro.h
+323232\jetsonnano_data_transmit.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h
+323232\jetsonnano_data_transmit.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h
+323232\jetsonnano_data_transmit.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h

@@ -47,8 +47,8 @@ void PID_Init(void)
     loc_pid[PID_X].kp = 0.30f;
     loc_pid[PID_X].ki = 0.00f;
     loc_pid[PID_X].kd = 0.00f;
-    loc_pid[PID_X].output_min = -8.0f;
-    loc_pid[PID_X].output_max = 8.0f;
+    loc_pid[PID_X].output_min = -15.0f;
+    loc_pid[PID_X].output_max = 15.0f;
     loc_pid[PID_X].integral_min = -0.0f;
     loc_pid[PID_X].integral_max = 0.0f;
     loc_pid[PID_X].deadband = 3.0f;

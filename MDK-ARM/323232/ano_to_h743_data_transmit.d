@@ -53,6 +53,8 @@
 323232\ano_to_h743_data_transmit.o: FcSrc\JetsonNano_Data_Transmit.h
 323232\ano_to_h743_data_transmit.o: FcSrc\Of_Radar_Fusion.h
 323232\ano_to_h743_data_transmit.o: FcSrc\Remote_Control.h
+323232\ano_to_h743_data_transmit.o: .\Algorithm\Point_Navigation.h
+323232\ano_to_h743_data_transmit.o: FcSrc\RC_Channel.h
 323232\ano_to_h743_data_transmit.o: .\DriversMCU\Drv_Uart.h
 323232\ano_to_h743_data_transmit.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
 323232\ano_to_h743_data_transmit.o: ../Core/Inc/FreeRTOSConfig.h
