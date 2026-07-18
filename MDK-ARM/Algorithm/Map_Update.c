@@ -1,10 +1,8 @@
 #include "Map_Update.h"
 #include "JetsonNano_Data_Transmit.h"
 #include "fifo.h"
-#include <stdio.h>
 
 #define MAP_WAYPOINT_FIFO_DEPTH       (126U)
-#define MAP_WAYPOINT_PRINT_ENABLE     (1U)
 
 const Point_t All_Point[12] = {
     {275, -50},  /* 1 */
@@ -46,22 +44,6 @@ void WayPointFifoInit(void)
               sizeof(ReturnHome_WayPoint_Buffer) / sizeof(ReturnHome_WayPoint_Buffer[0]));
 }
 
-static void MapPoint_PrintRoute(const char *name, Point_t *way_point, uint16_t size)
-{
-#if MAP_WAYPOINT_PRINT_ENABLE
-    printf("\r\n%s:", name);
-    for(uint16_t i = 0; i < size; i++)
-    {
-        printf("(%d,%d) ", way_point[i].x, way_point[i].y);
-    }
-    printf("\r\n");
-#else
-    (void)name;
-    (void)way_point;
-    (void)size;
-#endif
-}
-
 bool Add_WayPoint(Point_t *WayPoint, uint16_t size)
 {
     if(WayPoint == 0 || size == 0U)
@@ -71,13 +53,9 @@ bool Add_WayPoint(Point_t *WayPoint, uint16_t size)
 
     if(FIFO_Add(&Way_Point_Fifo, WayPoint, size) == size)
     {
-        MapPoint_PrintRoute("waypoint", WayPoint, size);
         return true;
     }
 
-#if MAP_WAYPOINT_PRINT_ENABLE
-    printf("waypoint add failed\r\n");
-#endif
     return false;
 }
 
@@ -107,13 +85,9 @@ bool Add_ReturnHomeWayPoint(Point_t *WayPoint, uint16_t size)
 
     if(FIFO_Add(&ReturnHome_WayPoint_fifo, WayPoint, size) == size)
     {
-        MapPoint_PrintRoute("return", WayPoint, size);
         return true;
     }
 
-#if MAP_WAYPOINT_PRINT_ENABLE
-    printf("return waypoint add failed\r\n");
-#endif
     return false;
 }
 

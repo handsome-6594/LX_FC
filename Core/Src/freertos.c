@@ -209,67 +209,10 @@ void StartKeyTestTask(void *argument)
 }
 
 /* USER CODE BEGIN Header_StartUartTestTask */
-/**
-  * @brief  Function implementing the uartTestTask thread.
-  * @param  argument: Not used
-  * @retval None
-  */
 /* USER CODE END Header_StartUartTestTask */
-// void StartUartTestTask(void *argument)
-// {
-//   /* USER CODE BEGIN StartUartTestTask */
-//   uint32_t count = 0;
-//   char msg[64];
-
-//   /* Infinite loop */
-//   for(;;)
-//   {
-//     count++;
-//     int len = snprintf(msg, sizeof(msg), "USART1 alive: %lu\r\n", count);
-//     HAL_UART_Transmit(&huart1, (uint8_t *)msg, (uint16_t)len, HAL_MAX_DELAY);
-//     osDelay(1000);
-//   }
-//   /* USER CODE END StartUartTestTask */
-// }
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
-// static void LX_GetEulerAngleX100(s16 *roll_x100, s16 *pitch_x100, s16 *yaw_x100)
-// {
-//   attitude_quat quat;
-//   float qw;
-//   float qx;
-//   float qy;
-//   float qz;
-//   float sinp;
-//   const float rad_to_deg_x100 = 5729.57795f;
-
-//   taskENTER_CRITICAL();
-//   quat = LX_quat;
-//   taskEXIT_CRITICAL();
-
-//   qw = (float)quat.quat_w_10000 * 0.0001f;
-//   qx = (float)quat.quat_x_10000 * 0.0001f;
-//   qy = (float)quat.quat_y_10000 * 0.0001f;
-//   qz = (float)quat.quat_z_10000 * 0.0001f;
-
-//   *roll_x100 = (s16)(atan2f(2.0f * (qw * qx + qy * qz),
-//                             1.0f - 2.0f * (qx * qx + qy * qy)) * rad_to_deg_x100);
-
-//   sinp = 2.0f * (qw * qy - qz * qx);
-//   if(sinp > 1.0f)
-//   {
-//     sinp = 1.0f;
-//   }
-//   else if(sinp < -1.0f)
-//   {
-//     sinp = -1.0f;
-//   }
-
-//   *pitch_x100 = (s16)(asinf(sinp) * rad_to_deg_x100);
-//   *yaw_x100 = (s16)(atan2f(2.0f * (qw * qz + qx * qy),
-//                            1.0f - 2.0f * (qy * qy + qz * qz)) * rad_to_deg_x100);
-// }
 
 void StartOledTestTask(void *argument)
 {
@@ -299,7 +242,6 @@ void StartOledTestTask(void *argument)
 
 void StartpwmPrintTask(void *argument)
 {
-  // uint16_t print_cnt = 0;
   uint8_t last_lx_unlocked = 0;
 
   for(;;)
@@ -312,37 +254,6 @@ void StartpwmPrintTask(void *argument)
 
     ESC_Output(RC_MotorIsUnlocked() && state.is_unlocked);
 
-    // if(has_new_pwm && ++print_cnt >= 250)
-    // {
-    //   s16 lx_roll_x100;
-    //   s16 lx_pitch_x100;
-    //   s16 lx_yaw_x100;
-
-    //   print_cnt = 0;
-    //   LX_GetEulerAngleX100(&lx_roll_x100, &lx_pitch_x100, &lx_yaw_x100);
-    //   printf("sbus byte=%lu frame=%lu lost=%d rc=%d lx=%d mode=%d ch=%d,%d,%d,%d tar=%d,%d,%d,%d pwm=%u,%u,%u,%u att=%d,%d,%d\r\n",
-    //    sbus_dma_byte_cnt,
-    //    sbus_frame_cnt,
-    //    RemoteControl_IsSignalLost(),
-    //    RC_MotorIsUnlocked(),
-    //    state.is_unlocked,
-    //    state.mode,
-    //    Channel_of_rc.data.ch[ch_1_rol],
-    //    Channel_of_rc.data.ch[ch_2_pit],
-    //    Channel_of_rc.data.ch[ch_3_thr],
-    //    Channel_of_rc.data.ch[ch_4_yaw],
-    //    ctrl_of_realtime.data.roll,
-    //    ctrl_of_realtime.data.pitch,
-    //    ctrl_of_realtime.data.throttle,
-    //    ctrl_of_realtime.data.yaw_dps,
-    //    pwm.pwm_value1,
-    //    pwm.pwm_value2,
-    //    pwm.pwm_value3,
-    //    pwm.pwm_value4,
-    //    lx_roll_x100,
-    //    lx_pitch_x100,
-    //    lx_yaw_x100);
-    // }
 
     osDelay(2);
   }
@@ -378,23 +289,6 @@ void Startuart4LXTask(void *argument)
       Data.fun[0x0D].wait_to_send = 1;
     }
 
-//     if(HAL_GetTick() - last_swc_print_ms >= 200)
-//     {
-//       last_swc_print_ms = HAL_GetTick();
-// // printf("mode=%d ch3=%d thr=%d alt_cm=%lu of=%d/%d/%d/%d pwm=%u,%u,%u,%u\r\n",
-// //        state.mode,
-// //        Channel_of_rc.data.ch[ch_3_thr],
-// //        ctrl_of_realtime.data.throttle,
-// //        optical_flow.alt_cm,
-// //        optical_flow.link_sta,
-// //        optical_flow.flow_sta,
-// //        optical_flow.alt_sta,
-// //        optical_flow.work_sta,
-// //        pwm_to_esc.pwm_value1,
-// //        pwm_to_esc.pwm_value2,
-// //        pwm_to_esc.pwm_value3,
-// //        pwm_to_esc.pwm_value4);
-//     }
 
     osDelay(1);
   }

@@ -237,7 +237,6 @@ void drvU3DataCheck(void)
             break;
         }
 
-        // printf("%02X ", data_temp);
         Uart3RxByteHandler(data_temp);
     }
 }

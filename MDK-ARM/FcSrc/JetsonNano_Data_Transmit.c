@@ -200,21 +200,6 @@ static void H743_Received_Data_From_JetsonNano_Analysis(const u8 *data, u8 len)
         Pos_of_Radar.pos_data.POS_Z_x100 = rel_pos.pos_data.z_x100;
         radar_pos_update_cnt++;
         update_Flag.Radar_Pos = 1;
-
-        // static u32 last_radar_pos_print_ms = 0;
-        // u32 now_ms = HAL_GetTick();
-        // if(now_ms - last_radar_pos_print_ms >= 200)
-        // {
-        //     last_radar_pos_print_ms = now_ms;
-        //     printf("radar pos raw=%d,%d,%d rel=%d,%d,%d cnt=%u\r\n",
-        //            raw_pos.pos_data.x_x100,
-        //            raw_pos.pos_data.y_x100,
-        //            raw_pos.pos_data.z_x100,
-        //            rel_pos.pos_data.x_x100,
-        //            rel_pos.pos_data.y_x100,
-        //            rel_pos.pos_data.z_x100,
-        //            radar_pos_update_cnt);
-        // }
     }
     //雷达里程计的速度数据
     else if(*(data + 2) == 0X02)
@@ -229,7 +214,6 @@ static void H743_Received_Data_From_JetsonNano_Analysis(const u8 *data, u8 len)
         }
         update_Flag.Radar_Speed = 1;
         FreqDetector_OnData(&JN_freq_detector[Data_stream_Radar_Speed]);
-        // printf("radar vel vx = %d, vy = %d, vz = %d\r\n", Speed_of_Radar.speed_data.vx_x100, Speed_of_Radar.speed_data.vy_x100, Speed_of_Radar.speed_data.vz_x100);
     }
     //摄像头指示发现了什么，要往哪里走
     else if(*(data + 2) == 0X03)
@@ -241,12 +225,6 @@ static void H743_Received_Data_From_JetsonNano_Analysis(const u8 *data, u8 len)
         Update_Map_OnRawData(Camera_Pos_data);
         FreqDetector_OnData(&JN_freq_detector[Data_stream_cam_loc]);
         update_Flag.Cam_pix = 1;
-        // printf("cam x=%d y=%d state=%u type=%u id=%d\r\n",
-        //        Camera_Pos_data.data.x_distance,
-        //        Camera_Pos_data.data.y_distance,
-        //        Camera_Pos_data.data.state,
-        //        Camera_Pos_data.data.type,
-        //        Camera_Pos_data.data.id);
     }
     //雷达yaw轴数据
     else if(*(data + 2) == 0X04)

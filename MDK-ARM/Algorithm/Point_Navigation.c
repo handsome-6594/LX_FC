@@ -170,22 +170,13 @@ static void PointNav_PrintDebug(const PointNav_RadarSnapshot_t *snapshot,
     }
 
     last_print_ms = now_ms;
-    printf("pn cur.x=%d cur.y=%d pid_r=%d,%d pid_b=%d,%d thr=%d pwm=%u,%u,%u,%u,%u,%u,%u,%u\r\n",
+    printf("pn cur.x=%d cur.y=%d pid_r=%d,%d pid_b=%d,%d\r\n",
            (int)snapshot->pos.x_x100,
            (int)snapshot->pos.y_x100,
            (int)radar_vel_x,
            (int)radar_vel_y,
            (int)body_vel_x,
-           (int)body_vel_y,
-           (int)nav_ctrl_cmd.data.throttle,
-           (unsigned int)(pwm_to_esc.pwm_value1 / 5U),
-           (unsigned int)(pwm_to_esc.pwm_value2 / 5U),
-           (unsigned int)(pwm_to_esc.pwm_value3 / 5U),
-           (unsigned int)(pwm_to_esc.pwm_value4 / 5U),
-           (unsigned int)(pwm_to_esc.pwm_value5 / 5U),
-           (unsigned int)(pwm_to_esc.pwm_value6 / 5U),
-           (unsigned int)(pwm_to_esc.pwm_value7 / 5U),
-           (unsigned int)(pwm_to_esc.pwm_value8 / 5U));
+           (int)body_vel_y);
 }
 
 //把雷达坐标系的速度转换成机体坐标系的速度
