@@ -234,7 +234,7 @@ void Startuart4LXTask(void *argument)
 #if USER_TASK_ENABLE != 0U
     UserTask_Update();
 #else
-    PointNavigation_TestPointTask();
+    //PointNavigation_TestPointTask();
 #endif
     PointNavigation_Update();
     drvU4DataCheck();

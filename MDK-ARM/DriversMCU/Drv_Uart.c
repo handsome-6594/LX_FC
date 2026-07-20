@@ -53,7 +53,7 @@ int fputc(int ch, FILE *stream)
 }
 
 //====uart2 optical flow
-#define OF_RXBufferSize 5
+#define OF_RXBufferSize 64
 #define OF_RXFIFOBufferSize (OF_RXBufferSize * 30)
 
 uint8_t OF_RxBuffer[OF_RXBufferSize];

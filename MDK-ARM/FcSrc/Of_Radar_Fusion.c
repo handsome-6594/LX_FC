@@ -17,6 +17,7 @@
 #define VELOCITY_FUSION_OPTICAL_FLOW_NOISE  (100.0f)
 #define VELOCITY_FUSION_RADAR_LIMIT_CMPS    (300)
 #define VELOCITY_FUSION_FLOW_MIN_QUALITY    (250U)
+#define VELOCITY_FUSION_GENERAL_KEEPALIVE_MS (100U)
 #define VELOCITY_FUSION_FLOW_DEBUG_ENABLE   (0U)
 #define VELOCITY_FUSION_FLOW_DEBUG_PERIOD_MS (200U)
 
@@ -29,6 +30,7 @@ ex_sensor_data ex_sensor;
 
 static VelocityFusionKalman_t velocity_fusion_filter;
 static u8 velocity_fusion_initialized;
+static u32 velocity_fusion_last_publish_ms;
 
 static s16 VelocityFusion_LimitS16(float value)
 {
@@ -48,6 +50,33 @@ static s16 VelocityFusion_LimitS16(float value)
 static s32 VelocityFusion_AbsS16(s16 value)
 {
     return (value < 0) ? -(s32)value : (s32)value;
+}
+
+static void VelocityFusion_PublishGeneralVelocity(s16 velocity_x,
+                                                  s16 velocity_y,
+                                                  s16 velocity_z)
+{
+    ex_sensor.vel_general.vel_data.velocity_cmps[0] = velocity_x;
+    ex_sensor.vel_general.vel_data.velocity_cmps[1] = velocity_y;
+    ex_sensor.vel_general.vel_data.velocity_cmps[2] = velocity_z;
+    Data.fun[0x33].wait_to_send = 1;
+    ext_flow_send33_cnt++;
+    velocity_fusion_last_publish_ms = HAL_GetTick();
+    FreqDetector_OnData(&JN_freq_detector[Data_stream_Vel_Fu]);
+}
+
+static void VelocityFusion_PublishInvalidVelocityIfDue(void)
+{
+    u32 now_ms = HAL_GetTick();
+
+    if((now_ms - velocity_fusion_last_publish_ms) < VELOCITY_FUSION_GENERAL_KEEPALIVE_MS)
+    {
+        return;
+    }
+
+    VelocityFusion_PublishGeneralVelocity(EXT_SENSOR_INVALID_S16,
+                                          EXT_SENSOR_INVALID_S16,
+                                          EXT_SENSOR_INVALID_S16);
 }
 
 static void VelocityFusion_PrintDebug(s16 radar_velocity_x,
@@ -144,6 +173,7 @@ static void GeneralVelocityFromRadarAndOpticalFlow(float dT_s)
     u8 optical_flow_updated;
     u8 optical_flow_ready = 0;
     u8 optical_flow_valid = 0;
+    u8 optical_flow_source_valid = 0;
     u8 radar_updated;
     u8 radar_valid = 0;
     s16 radar_velocity_x = 0;
@@ -158,11 +188,13 @@ static void GeneralVelocityFromRadarAndOpticalFlow(float dT_s)
     vel_sen_sorce = (Switch_sta_st.SWB == Switch_Low) ? ano_of_vel : Radar_vel;
 
     optical_flow_updated = (last_flow_update_cnt != optical_flow.flow_update_cnt) ? 1U : 0U;
-    if(optical_flow.flow_sta != 0U &&
-       optical_flow.fusion_flow_sta != 0U &&
-       optical_flow.flow_quality >= VELOCITY_FUSION_FLOW_MIN_QUALITY)
+    if(optical_flow.work_sta != 0U && optical_flow.fusion_flow_sta != 0U)
     {
-        optical_flow_ready = 1U;
+        optical_flow_source_valid = 1U;
+        if(optical_flow.flow_quality >= VELOCITY_FUSION_FLOW_MIN_QUALITY)
+        {
+            optical_flow_ready = 1U;
+        }
     }
 
     if(optical_flow_updated != 0U)
@@ -210,13 +242,15 @@ static void GeneralVelocityFromRadarAndOpticalFlow(float dT_s)
     {
         /* Radar may still maintain the filter internally, but must not affect
          * the published velocity in optical-flow-only mode. */
-        if(optical_flow_valid == 0U)
+        if(optical_flow_source_valid == 0U)
         {
+            VelocityFusion_PublishInvalidVelocityIfDue();
             return;
         }
 
-        ex_sensor.vel_general.vel_data.velocity_cmps[0] = optical_flow.fusion_flow_dx;
-        ex_sensor.vel_general.vel_data.velocity_cmps[1] = optical_flow.fusion_flow_dy;
+        VelocityFusion_PublishGeneralVelocity(optical_flow.fusion_flow_dx,
+                                              optical_flow.fusion_flow_dy,
+                                              EXT_SENSOR_INVALID_S16);
     }
     else
     {
@@ -226,15 +260,10 @@ static void GeneralVelocityFromRadarAndOpticalFlow(float dT_s)
             return;
         }
 
-        ex_sensor.vel_general.vel_data.velocity_cmps[0] =
-            VelocityFusion_LimitS16(velocity_fusion_filter.x.velocity);
-        ex_sensor.vel_general.vel_data.velocity_cmps[1] =
-            VelocityFusion_LimitS16(velocity_fusion_filter.y.velocity);
+        VelocityFusion_PublishGeneralVelocity(VelocityFusion_LimitS16(velocity_fusion_filter.x.velocity),
+                                              VelocityFusion_LimitS16(velocity_fusion_filter.y.velocity),
+                                              EXT_SENSOR_INVALID_S16);
     }
-    ex_sensor.vel_general.vel_data.velocity_cmps[2] = EXT_SENSOR_INVALID_S16;
-    Data.fun[0x33].wait_to_send = 1;
-    ext_flow_send33_cnt++;
-    FreqDetector_OnData(&JN_freq_detector[Data_stream_Vel_Fu]);
 }
 
 static void GeneralDistanceFromOpticalFlow(void)
@@ -303,6 +332,7 @@ void ExtSensorFusion_Init(void)
                               VELOCITY_FUSION_RADAR_NOISE,
                               VELOCITY_FUSION_OPTICAL_FLOW_NOISE);
     velocity_fusion_initialized = 1U;
+    velocity_fusion_last_publish_ms = HAL_GetTick();
     vel_sen_sorce = Radar_vel;
     update_Flag.Radar_Speed = 0U;
 }
