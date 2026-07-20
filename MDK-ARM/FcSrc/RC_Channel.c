@@ -20,25 +20,27 @@
 #define UNLOCK_CMD_RETRY_MS 100
 #define MODE_CH_LOW_LIMIT 1200
 #define MODE_CH_HIGH_LIMIT 1700
+#define SWITCH_CH_HYSTERESIS 80
+#define SWITCH_STABLE_FRAME_COUNT 3U
 
 static u8 motor_unlocked;
 static u16 arm_hold_ms;
 static u16 unlock_cmd_retry_ms;
 
-//切换模式
-static u8 FlightModeFromChannel(s16 channel)
+typedef struct
 {
-    if(channel < MODE_CH_LOW_LIMIT)
-    {
-        return 1;
-    }
+    SwitchState state;
+    SwitchState candidate;
+    u8 candidate_count;
+}RcSwitchFilter;
 
-    if(channel < MODE_CH_HIGH_LIMIT)
-    {
-        return 2;
-    }
+static RcSwitchFilter switch_filter[6];
+static u8 switch_filter_initialized;
 
-    return 3;
+//切换模式
+static u8 FlightModeFromSwitch(SwitchState sw)
+{
+    return (u8)sw + 1U;
 }
 
 //限幅函数
@@ -76,17 +78,101 @@ static s16 Deadzone(s16 value, s16 deadzone)
 //开关的中高低挡的判断
 static SwitchState SwitchStateFromChannel(s16 channel)
 {
-    if(channel < 1200)
+    if(channel < MODE_CH_LOW_LIMIT)
     {
         return Switch_Low;
     }
 
-    if(channel < 1700)
+    if(channel < MODE_CH_HIGH_LIMIT)
     {
         return Switch_Mid;
     }
 
     return Switch_High;
+}
+
+//带滞回的三档判定，避免通道值在阈值附近抖动时来回切换
+static SwitchState SwitchStateFromChannelHysteresis(s16 channel, SwitchState current_state)
+{
+    switch(current_state)
+    {
+        case Switch_Low:
+            if(channel > (MODE_CH_LOW_LIMIT + SWITCH_CH_HYSTERESIS))
+            {
+                return Switch_Mid;
+            }
+            return Switch_Low;
+
+        case Switch_High:
+            if(channel < (MODE_CH_HIGH_LIMIT - SWITCH_CH_HYSTERESIS))
+            {
+                return Switch_Mid;
+            }
+            return Switch_High;
+
+        case Switch_Mid:
+        default:
+            if(channel < (MODE_CH_LOW_LIMIT - SWITCH_CH_HYSTERESIS))
+            {
+                return Switch_Low;
+            }
+
+            if(channel > (MODE_CH_HIGH_LIMIT + SWITCH_CH_HYSTERESIS))
+            {
+                return Switch_High;
+            }
+
+            return Switch_Mid;
+    }
+}
+
+static SwitchState SwitchFilterUpdate(RcSwitchFilter *filter, s16 channel)
+{
+    SwitchState candidate;
+
+    if(filter == 0)
+    {
+        return Switch_Mid;
+    }
+
+    candidate = SwitchStateFromChannelHysteresis(channel, filter->state);
+
+    if(candidate == filter->state)
+    {
+        filter->candidate = candidate;
+        filter->candidate_count = 0;
+        return filter->state;
+    }
+
+    if(candidate != filter->candidate)
+    {
+        filter->candidate = candidate;
+        filter->candidate_count = 1U;
+    }
+    else if(filter->candidate_count < SWITCH_STABLE_FRAME_COUNT)
+    {
+        filter->candidate_count++;
+    }
+
+    if(filter->candidate_count >= SWITCH_STABLE_FRAME_COUNT)
+    {
+        filter->state = candidate;
+        filter->candidate_count = 0;
+    }
+
+    return filter->state;
+}
+
+static void SwitchFilterInitOne(RcSwitchFilter *filter, s16 channel)
+{
+    if(filter == 0)
+    {
+        return;
+    }
+
+    filter->state = SwitchStateFromChannel(channel);
+    filter->candidate = filter->state;
+    filter->candidate_count = 0;
 }
 
 static u32 ReadAdcOnce(ADC_HandleTypeDef *hadc)
@@ -109,12 +195,33 @@ static u32 ReadAdcOnce(ADC_HandleTypeDef *hadc)
 //不同通道绑定不同的开关
 static void SyncSwitchState(void)
 {
-    Switch_sta_st.SWA = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_6_aux2]);
-    Switch_sta_st.SWB = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_7_aux3]);
-    Switch_sta_st.SWC = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_5_aux1]);
-    Switch_sta_st.SWD = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_10_aux6]);
-    Switch_sta_st.VRA = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_9_aux5]);
-    Switch_sta_st.VRB = SwitchStateFromChannel(Channel_of_rc.data.ch[ch_8_aux4]);
+    static u32 last_sbus_frame_cnt;
+    u32 current_sbus_frame_cnt = sbus_frame_cnt;
+
+    if(switch_filter_initialized == 0U)
+    {
+        SwitchFilterInitOne(&switch_filter[0], Channel_of_rc.data.ch[ch_6_aux2]);
+        SwitchFilterInitOne(&switch_filter[1], Channel_of_rc.data.ch[ch_7_aux3]);
+        SwitchFilterInitOne(&switch_filter[2], Channel_of_rc.data.ch[ch_5_aux1]);
+        SwitchFilterInitOne(&switch_filter[3], Channel_of_rc.data.ch[ch_10_aux6]);
+        SwitchFilterInitOne(&switch_filter[4], Channel_of_rc.data.ch[ch_9_aux5]);
+        SwitchFilterInitOne(&switch_filter[5], Channel_of_rc.data.ch[ch_8_aux4]);
+        switch_filter_initialized = 1U;
+    }
+
+    if(current_sbus_frame_cnt == last_sbus_frame_cnt)
+    {
+        return;
+    }
+
+    last_sbus_frame_cnt = current_sbus_frame_cnt;
+
+    Switch_sta_st.SWA = SwitchFilterUpdate(&switch_filter[0], Channel_of_rc.data.ch[ch_6_aux2]);
+    Switch_sta_st.SWB = SwitchFilterUpdate(&switch_filter[1], Channel_of_rc.data.ch[ch_7_aux3]);
+    Switch_sta_st.SWC = SwitchFilterUpdate(&switch_filter[2], Channel_of_rc.data.ch[ch_5_aux1]);
+    Switch_sta_st.SWD = SwitchFilterUpdate(&switch_filter[3], Channel_of_rc.data.ch[ch_10_aux6]);
+    Switch_sta_st.VRA = SwitchFilterUpdate(&switch_filter[4], Channel_of_rc.data.ch[ch_9_aux5]);
+    Switch_sta_st.VRB = SwitchFilterUpdate(&switch_filter[5], Channel_of_rc.data.ch[ch_8_aux4]);
 }
 
 //雷达开关控制：VRA高挡打开雷达，低挡关闭雷达，中挡保持当前状态
@@ -243,7 +350,7 @@ void RC_Data_Task(float dT_s)
         return;
     }
 
-    mode = FlightModeFromChannel(Channel_of_rc.data.ch[ch_5_aux1]);
+    mode = FlightModeFromSwitch(Switch_sta_st.SWC);
     LX_Change_Mode(mode);
 
     roll = Deadzone(Channel_of_rc.data.ch[ch_1_rol] - RC_MID_VALUE, RC_DEADZONE_ROLL_PITCH);

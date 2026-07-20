@@ -4,6 +4,7 @@
 #include "SysConfig.h"
 
 #define USER_TASK_ENABLE (1U)
+#define USER_TASK_GROUND_TEST_ENABLE (1U)
 
 void UserTask_Init(void);
 void UserTask_Update(void);

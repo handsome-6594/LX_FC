@@ -9,9 +9,10 @@
 #include <stdio.h>
 
 #define USER_TASK_SENSOR_TIMEOUT_MS      300U
-#define USER_TASK_TAKEOFF_Z_X100         75
+#define USER_TASK_TAKEOFF_Z_X100         50
 #define USER_TASK_TEST_POINT_COUNT       2U
-#define USER_TASK_DEBUG_ENABLE           (0U)
+#define USER_TASK_GROUND_TEST_X_X100     50
+#define USER_TASK_DEBUG_ENABLE           (USER_TASK_GROUND_TEST_ENABLE)
 #define USER_TASK_DEBUG_PERIOD_MS        200U
 
 typedef enum
@@ -50,9 +51,13 @@ static u8 UserTask_SwitchRequested(void)
 
 static u8 UserTask_SystemReady(void)
 {
+#if USER_TASK_GROUND_TEST_ENABLE
+    return (RemoteControl_IsSignalLost() == 0U) ? 1U : 0U;
+#else
     return (RemoteControl_IsSignalLost() == 0U &&
             state.is_unlocked != 0U &&
             RC_MotorIsUnlocked() != 0U) ? 1U : 0U;
+#endif
 }
 
 static u8 UserTask_RadarDataHealthy(void)
@@ -150,7 +155,7 @@ static void UserTask_PublishVelocity(const Radar_Cmd_Vel *cmd)
         line_state = WayPointMission_GetState();
         if(line_state != 0)
         {
-            printf("wp st=%u seg=%u cur[%d,%d,%d] tar[%d,%d,%d] len=%d along=%d cross=%d rem=%d rv[%d,%d] bv[%d,%d,%d] yaw=%d stable[%u,%u,%u]\r\n",
+            printf("wp_test st=%u seg=%u p[%d,%d,%d] t[%d,%d,%d] line[%d,%d,%d] pid_r[%d,%d] body[%d,%d] vz=%d yaw=%d ok[%u,%u,%u]\r\n",
                    user_task_state,
                    user_task_segment_id,
                    line_state->current_x,
@@ -159,7 +164,6 @@ static void UserTask_PublishVelocity(const Radar_Cmd_Vel *cmd)
                    line_state->target_x,
                    line_state->target_y,
                    line_state->target_z,
-                   (s16)line_state->line_length,
                    (s16)line_state->along,
                    (s16)line_state->cross,
                    (s16)line_state->remaining,
@@ -188,9 +192,18 @@ static u8 UserTask_LoadTestWayPoints(void)
 {
     Point_t test_points[USER_TASK_TEST_POINT_COUNT];
     u8 count = 0U;
+#if USER_TASK_GROUND_TEST_ENABLE == 0U
     u8 i;
+#endif
 
     WayPointClear();
+#if USER_TASK_GROUND_TEST_ENABLE
+    test_points[0].x = (s16)(user_task_takeoff_x + USER_TASK_GROUND_TEST_X_X100);
+    test_points[0].y = user_task_takeoff_y;
+    test_points[1].x = (s16)(user_task_takeoff_x - USER_TASK_GROUND_TEST_X_X100);
+    test_points[1].y = user_task_takeoff_y;
+    count = USER_TASK_TEST_POINT_COUNT;
+#else
     for(i = 0U; i < USER_TASK_TEST_POINT_COUNT; i++)
     {
         if(MapPoint_IsValid(All_Point[i]) != 0U)
@@ -199,6 +212,7 @@ static u8 UserTask_LoadTestWayPoints(void)
             count++;
         }
     }
+#endif
 
     if(count == 0U)
     {
@@ -243,7 +257,11 @@ static void UserTask_StartMission(void)
         return;
     }
 
+#if USER_TASK_GROUND_TEST_ENABLE
+    PointNavigation_Stop();
+#else
     PointNavigation_Start();
+#endif
     PointNavigation_SetCmdVelSource(JN_Cmd_vel);
     PointNavigation_SetStableCondition(user_task_stable);
     PointNavigation_SetTarget(user_task_takeoff_x,
@@ -258,6 +276,17 @@ static void UserTask_StartMission(void)
     user_task_fc_state.center_stable = 0U;
     user_task_fc_state.yaw_stable = 0U;
     UserTask_PublishZeroVelocity();
+
+#if USER_TASK_GROUND_TEST_ENABLE
+    printf("wp_test start dry=1 home[%d,%d] z=%d points[%d,%d][%d,%d]\r\n",
+           user_task_takeoff_x,
+           user_task_takeoff_y,
+           USER_TASK_TAKEOFF_Z_X100,
+           (s16)(user_task_takeoff_x + USER_TASK_GROUND_TEST_X_X100),
+           user_task_takeoff_y,
+           (s16)(user_task_takeoff_x - USER_TASK_GROUND_TEST_X_X100),
+           user_task_takeoff_y);
+#endif
 }
 
 static void UserTask_StopMission(void)
@@ -386,6 +415,10 @@ void UserTask_Update(void)
         UserTask_StopMission();
         return;
     }
+
+#if USER_TASK_GROUND_TEST_ENABLE
+    RC_MotorForceLock();
+#endif
 
     if(UserTask_SystemReady() == 0U || UserTask_RadarDataHealthy() == 0U)
     {

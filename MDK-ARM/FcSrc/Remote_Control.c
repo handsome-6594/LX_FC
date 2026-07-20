@@ -3,6 +3,7 @@
 
 #define SBUS_FRAME_LEN 25
 #define SBUS_HEADER 0x0F
+#define SBUS_END_BYTE 0x00
 #define SBUS_TIMEOUT_MS 300
 #define SBUS_RAW_MIN 172
 #define SBUS_RAW_MAX 1811
@@ -92,7 +93,7 @@ static void SbusPushByte(u8 data)
 
     if(sbus_index >= SBUS_FRAME_LEN)
     {
-        if(sbus_frame[0] == SBUS_HEADER)
+        if(sbus_frame[0] == SBUS_HEADER && sbus_frame[SBUS_FRAME_LEN - 1] == SBUS_END_BYTE)
         {
             SbusDecodeFrame(sbus_frame);
         }
