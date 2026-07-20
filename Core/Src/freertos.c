@@ -230,6 +230,7 @@ void Startuart4LXTask(void *argument)
   for(;;)
   {
     DrvRcInputTask(0.001f);
+    drvU4DataCheck();
     RC_Data_Task(0.001f);
 #if USER_TASK_ENABLE != 0U
     UserTask_Update();
@@ -237,7 +238,6 @@ void Startuart4LXTask(void *argument)
     //PointNavigation_TestPointTask();
 #endif
     PointNavigation_Update();
-    drvU4DataCheck();
     H743_Data_Transmit_Check();
 
     if(HAL_GetTick() - last_bat_send_ms >= 100)

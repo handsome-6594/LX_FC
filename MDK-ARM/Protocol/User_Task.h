@@ -3,7 +3,7 @@
 
 #include "SysConfig.h"
 
-#define USER_TASK_ENABLE (0U)
+#define USER_TASK_ENABLE (1U)
 
 void UserTask_Init(void);
 void UserTask_Update(void);

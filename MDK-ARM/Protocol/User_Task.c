@@ -63,6 +63,9 @@ static u8 UserTask_RadarDataHealthy(void)
     static u32 last_pos_ms;
     static u32 last_qua_ms;
     static u32 last_yaw_ms;
+    static u8 pos_seen;
+    static u8 qua_seen;
+    static u8 yaw_seen;
     static u8 inited;
     u32 now_ms = HAL_GetTick();
 
@@ -72,6 +75,9 @@ static u8 UserTask_RadarDataHealthy(void)
         last_pos_update_cnt = radar_pos_update_cnt;
         last_qua_update_cnt = radar_qua_update_cnt;
         last_yaw_update_cnt = radar_yaw_update_cnt;
+        pos_seen = (radar_pos_update_cnt != 0U) ? 1U : 0U;
+        qua_seen = (radar_qua_update_cnt != 0U) ? 1U : 0U;
+        yaw_seen = (radar_yaw_update_cnt != 0U) ? 1U : 0U;
         last_pos_ms = now_ms;
         last_qua_ms = now_ms;
         last_yaw_ms = now_ms;
@@ -80,19 +86,27 @@ static u8 UserTask_RadarDataHealthy(void)
     if(last_pos_update_cnt != radar_pos_update_cnt)
     {
         last_pos_update_cnt = radar_pos_update_cnt;
+        pos_seen = 1U;
         last_pos_ms = now_ms;
     }
 
     if(last_qua_update_cnt != radar_qua_update_cnt)
     {
         last_qua_update_cnt = radar_qua_update_cnt;
+        qua_seen = 1U;
         last_qua_ms = now_ms;
     }
 
     if(last_yaw_update_cnt != radar_yaw_update_cnt)
     {
         last_yaw_update_cnt = radar_yaw_update_cnt;
+        yaw_seen = 1U;
         last_yaw_ms = now_ms;
+    }
+
+    if(pos_seen == 0U || qua_seen == 0U || yaw_seen == 0U)
+    {
+        return 0U;
     }
 
     return (((now_ms - last_pos_ms) < USER_TASK_SENSOR_TIMEOUT_MS) &&
