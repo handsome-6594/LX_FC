@@ -12,7 +12,7 @@
 #define USER_TASK_TAKEOFF_Z_X100         50
 #define USER_TASK_TEST_POINT_COUNT       2U
 #define USER_TASK_GROUND_TEST_X_X100     50
-#define USER_TASK_DEBUG_ENABLE           (USER_TASK_GROUND_TEST_ENABLE)
+#define USER_TASK_DEBUG_ENABLE           (0U)
 #define USER_TASK_DEBUG_PERIOD_MS        200U
 
 typedef enum
@@ -277,7 +277,7 @@ static void UserTask_StartMission(void)
     user_task_fc_state.yaw_stable = 0U;
     UserTask_PublishZeroVelocity();
 
-#if USER_TASK_GROUND_TEST_ENABLE
+#if USER_TASK_DEBUG_ENABLE
     printf("wp_test start dry=1 home[%d,%d] z=%d points[%d,%d][%d,%d]\r\n",
            user_task_takeoff_x,
            user_task_takeoff_y,
