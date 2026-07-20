@@ -56,7 +56,7 @@ typedef struct
     u8 direction;
     u16 angle;
     u32 distance;
-}general_distance;
+} __attribute__((__packed__))general_distance;
 
 typedef union 
 {

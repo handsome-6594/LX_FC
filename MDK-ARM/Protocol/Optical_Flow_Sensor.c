@@ -16,7 +16,7 @@
 #define OF_FLOW_FUSION 1
 #define OF_FLOW_INERTIAL 2
 
-#define OF_DEBUG_ENABLE (1U)
+#define OF_DEBUG_ENABLE (0U)
 #define OF_DEBUG_PERIOD_MS (500U)
 
 OpticalFlowData optical_flow;

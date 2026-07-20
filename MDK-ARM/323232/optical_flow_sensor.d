@@ -58,4 +58,5 @@
 323232\optical_flow_sensor.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h
 323232\optical_flow_sensor.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h
 323232\optical_flow_sensor.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h
+323232\optical_flow_sensor.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
 323232\optical_flow_sensor.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
