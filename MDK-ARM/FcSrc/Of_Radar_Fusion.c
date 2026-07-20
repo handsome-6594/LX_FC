@@ -17,7 +17,7 @@
 #define VELOCITY_FUSION_OPTICAL_FLOW_NOISE  (100.0f)
 #define VELOCITY_FUSION_RADAR_LIMIT_CMPS    (300)
 #define VELOCITY_FUSION_FLOW_MIN_QUALITY    (250U)
-#define VELOCITY_FUSION_FLOW_DEBUG_ENABLE   (1U)
+#define VELOCITY_FUSION_FLOW_DEBUG_ENABLE   (0U)
 #define VELOCITY_FUSION_FLOW_DEBUG_PERIOD_MS (200U)
 
 volatile u32 ext_flow_send33_cnt = 0;
@@ -50,10 +50,99 @@ static s32 VelocityFusion_AbsS16(s16 value)
     return (value < 0) ? -(s32)value : (s32)value;
 }
 
+static void VelocityFusion_PrintDebug(s16 radar_velocity_x,
+                                      s16 radar_velocity_y,
+                                      u8 radar_valid,
+                                      s16 optical_flow_velocity_x,
+                                      s16 optical_flow_velocity_y,
+                                      u8 optical_flow_valid,
+                                      u8 optical_flow_ready,
+                                      u8 optical_flow_updated)
+{
+#if VELOCITY_FUSION_FLOW_DEBUG_ENABLE
+    static u32 last_print_ms;
+    static u8 window_radar_valid;
+    static u8 window_optical_flow_valid;
+    static u8 window_optical_flow_updated;
+    static s16 window_radar_velocity_x;
+    static s16 window_radar_velocity_y;
+    u32 now_ms = HAL_GetTick();
+    s16 fused_velocity_x;
+    s16 fused_velocity_y;
+
+    if(radar_valid != 0U)
+    {
+        window_radar_valid = 1U;
+        window_radar_velocity_x = radar_velocity_x;
+        window_radar_velocity_y = radar_velocity_y;
+    }
+
+    if(optical_flow_updated != 0U)
+    {
+        window_optical_flow_updated = 1U;
+    }
+
+    if(optical_flow_valid != 0U)
+    {
+        window_optical_flow_valid = 1U;
+    }
+
+    if((now_ms - last_print_ms) < VELOCITY_FUSION_FLOW_DEBUG_PERIOD_MS)
+    {
+        return;
+    }
+
+    last_print_ms = now_ms;
+    fused_velocity_x = VelocityFusion_LimitS16(velocity_fusion_filter.x.velocity);
+    fused_velocity_y = VelocityFusion_LimitS16(velocity_fusion_filter.y.velocity);
+
+    printf("vel r[%d,%d] rv=%u rw[%d,%d] rvw=%u of[%d,%d] ov=%u ovw=%u ready=%u upd=%u updw=%u work=%u fs=%u as=%u fsta=%u cnt=%u altcnt=%u k[%d,%d] src=%u q=%u\r\n",
+           radar_velocity_x,
+           radar_velocity_y,
+           radar_valid,
+           window_radar_velocity_x,
+           window_radar_velocity_y,
+           window_radar_valid,
+           optical_flow_velocity_x,
+           optical_flow_velocity_y,
+           optical_flow_valid,
+           window_optical_flow_valid,
+           optical_flow_ready,
+           optical_flow_updated,
+           window_optical_flow_updated,
+           optical_flow.work_sta,
+           optical_flow.flow_sta,
+           optical_flow.alt_sta,
+           optical_flow.fusion_flow_sta,
+           optical_flow.flow_update_cnt,
+           optical_flow.alt_update_cnt,
+           fused_velocity_x,
+           fused_velocity_y,
+           vel_sen_sorce,
+           optical_flow.flow_quality);
+
+    window_radar_valid = 0U;
+    window_radar_velocity_x = 0;
+    window_radar_velocity_y = 0;
+    window_optical_flow_valid = 0U;
+    window_optical_flow_updated = 0U;
+#else
+    (void)radar_velocity_x;
+    (void)radar_velocity_y;
+    (void)radar_valid;
+    (void)optical_flow_velocity_x;
+    (void)optical_flow_velocity_y;
+    (void)optical_flow_valid;
+    (void)optical_flow_ready;
+    (void)optical_flow_updated;
+#endif
+}
+
 static void GeneralVelocityFromRadarAndOpticalFlow(float dT_s)
 {
     static u8 last_flow_update_cnt;
     u8 optical_flow_updated;
+    u8 optical_flow_ready = 0;
     u8 optical_flow_valid = 0;
     u8 radar_updated;
     u8 radar_valid = 0;
@@ -69,12 +158,17 @@ static void GeneralVelocityFromRadarAndOpticalFlow(float dT_s)
     vel_sen_sorce = (Switch_sta_st.SWB == Switch_Low) ? ano_of_vel : Radar_vel;
 
     optical_flow_updated = (last_flow_update_cnt != optical_flow.flow_update_cnt) ? 1U : 0U;
+    if(optical_flow.flow_sta != 0U &&
+       optical_flow.fusion_flow_sta != 0U &&
+       optical_flow.flow_quality >= VELOCITY_FUSION_FLOW_MIN_QUALITY)
+    {
+        optical_flow_ready = 1U;
+    }
+
     if(optical_flow_updated != 0U)
     {
         last_flow_update_cnt = optical_flow.flow_update_cnt;
-        if(optical_flow.work_sta != 0U &&
-           optical_flow.fusion_flow_sta != 0U &&
-           optical_flow.flow_quality > VELOCITY_FUSION_FLOW_MIN_QUALITY)
+        if(optical_flow_ready != 0U)
         {
             optical_flow_valid = 1U;
         }
@@ -102,6 +196,15 @@ static void GeneralVelocityFromRadarAndOpticalFlow(float dT_s)
                                 (float)optical_flow.fusion_flow_dy,
                                 optical_flow_valid,
                                 dT_s);
+
+    VelocityFusion_PrintDebug(radar_velocity_x,
+                              radar_velocity_y,
+                              radar_valid,
+                              optical_flow.fusion_flow_dx,
+                              optical_flow.fusion_flow_dy,
+                              optical_flow_valid,
+                              optical_flow_ready,
+                              optical_flow_updated);
 
     if(vel_sen_sorce == ano_of_vel)
     {

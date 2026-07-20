@@ -9,13 +9,12 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include <math.h>
-#include <stdio.h>
 
 #define POINT_NAV_SENSOR_TIMEOUT_MS        300
-#define POINT_NAV_ENABLE_YAW_CONTROL       (0U)
+#define POINT_NAV_ENABLE_YAW_CONTROL       (1U)
 #define POINT_NAV_YAW_DIR_TEST_ENABLE      (0U)
 #define POINT_NAV_YAW_DIR_TEST_DPS         (10)
-#define POINT_NAV_DEBUG_PRINT_MS           (200U)
+#define POINT_NAV_THROTTLE_MID             (500)
 
 volatile _cmd_vel_sorce cmd_vel_sorce = Radar_Pid_vel;
 volatile u8 point_navigation_enable = 0;
@@ -40,9 +39,9 @@ static s16 point_nav_last_target_yaw;
 static u8 point_nav_target_inited;
 
 static const PointNavigationTarget_t point_navigation_fixed_target = {
-    .target_x = 100,
+    .target_x = 0,
     .target_y = 0,
-    .target_z = 50,
+    .target_z = 75,
     .target_yaw = 0,
 };
 
@@ -50,8 +49,10 @@ typedef struct
 {
     Radar_Pos_16 pos;
     Radar_qua qua;
+    s16 yaw_x100;
     u8 pos_update_cnt;
     u8 qua_update_cnt;
+    u8 yaw_update_cnt;
 } PointNav_RadarSnapshot_t;
 
 static u8 PointNav_RadarDataHealthy(void);
@@ -67,7 +68,7 @@ static void PointNav_ResetTaskState(void)
     point_navigation_state.yaw_stable = 0;
 }
 
-//一次性读取雷达位置，雷达四元数，更新计数
+//一次性读取雷达位置、雷达四元数、yaw 角和更新计数
 static void PointNav_GetRadarSnapshot(PointNav_RadarSnapshot_t *snapshot)
 {
     if(snapshot == 0)
@@ -78,8 +79,10 @@ static void PointNav_GetRadarSnapshot(PointNav_RadarSnapshot_t *snapshot)
     taskENTER_CRITICAL();
     snapshot->pos = Pos16_of_Radar.pos_data;
     snapshot->qua = real_Radar_qua;
+    snapshot->yaw_x100 = Radar_YAW_tar_un.st_data.yaw_x100;
     snapshot->pos_update_cnt = radar_pos_update_cnt;
     snapshot->qua_update_cnt = radar_qua_update_cnt;
+    snapshot->yaw_update_cnt = radar_yaw_update_cnt;
     taskEXIT_CRITICAL();
 }
 
@@ -105,7 +108,7 @@ static s32 PointNav_AbsS32(s32 value)
     return (value < 0) ? -value : value;
 }
 
-//计算yaw角误差，并限制在-180-180度
+//计算 yaw 角误差，并限制在 -180 到 180 度
 static float PointNav_AngleErrorDeg(float target_deg, float measurement_deg)
 {
     float error = target_deg - measurement_deg;
@@ -123,60 +126,15 @@ static float PointNav_AngleErrorDeg(float target_deg, float measurement_deg)
     return error;
 }
 
-//用雷达四元数算当前yaw角，单位是度
-static float PointNav_GetRadarYawDeg(const Radar_qua *qua)
+// Use JetsonNano 0x04 radar yaw frame as current yaw angle, unit: degree.
+static float PointNav_GetRadarYawDeg(const PointNav_RadarSnapshot_t *snapshot)
 {
-    float qx;
-    float qy;
-    float qz;
-    float qw;
-
-    if(qua == 0)
+    if(snapshot == 0)
     {
         return 0.0f;
     }
 
-    qx = qua->qx;
-    qy = qua->qy;
-    qz = qua->qz;
-    qw = qua->qw;
-
-    return atan2f(2.0f * qx * qy + 2.0f * qz * qw,
-                  -2.0f * qy * qy - 2.0f * qz * qz + 1.0f) * 57.2957795f;
-}
-
-static void PointNav_PrintDebug(const PointNav_RadarSnapshot_t *snapshot,
-                                s16 radar_vel_x,
-                                s16 radar_vel_y,
-                                s16 body_vel_x,
-                                s16 body_vel_y)
-{
-    static u32 last_print_ms;
-    u32 now_ms = HAL_GetTick();
-
-    if(snapshot == 0)
-    {
-        return;
-    }
-
-    if(snapshot->pos_update_cnt == 0U)
-    {
-        return;
-    }
-
-    if((now_ms - last_print_ms) < POINT_NAV_DEBUG_PRINT_MS)
-    {
-        return;
-    }
-
-    last_print_ms = now_ms;
-    printf("pn cur.x=%d cur.y=%d pid_r=%d,%d pid_b=%d,%d\r\n",
-           (int)snapshot->pos.x_x100,
-           (int)snapshot->pos.y_x100,
-           (int)radar_vel_x,
-           (int)radar_vel_y,
-           (int)body_vel_x,
-           (int)body_vel_y);
+    return (float)snapshot->yaw_x100 * 0.01f;
 }
 
 //把雷达坐标系的速度转换成机体坐标系的速度
@@ -227,7 +185,7 @@ static void PointNav_RadarVelocityToBody(const Radar_qua *qua,
 }
 
 
-//判断当前是否已经到目标点附近   分别判断高度，水平方向的距离，和yaw轴角度是否稳定
+//判断当前是否已经到目标点附近，分别判断高度、水平距离和 yaw 角是否稳定
 static void PointNav_GetFcTaskState(s16 target_x, s16 target_y, s16 target_z, s16 target_yaw,
                                     FC_TaskState_t *state, FC_Stable_t stable,
                                     const PointNav_RadarSnapshot_t *snapshot)
@@ -306,7 +264,7 @@ static void PointNav_GetFcTaskState(s16 target_x, s16 target_y, s16 target_z, s1
         state->center_stable = 1;
     }
 
-    if(fabsf(PointNav_AngleErrorDeg((float)target_yaw, PointNav_GetRadarYawDeg(&snapshot->qua))) > (float)yaw_error_threshold)
+    if(fabsf(PointNav_AngleErrorDeg((float)target_yaw, PointNav_GetRadarYawDeg(snapshot))) > (float)yaw_error_threshold)
     {
         point_nav_yaw_ok = 0;
         state->yaw_stable = 0;
@@ -322,21 +280,21 @@ static void PointNav_GetFcTaskState(s16 target_x, s16 target_y, s16 target_z, s1
 }
 
 //把导航速度写进候选控制量，最终 0x41 由仲裁器统一选择
-static void PointNav_WriteRealtimeVelocity(s16 vel_x, s16 vel_y, s16 yaw_dps)
+static void PointNav_WriteRealtimeVelocity(s16 vel_x, s16 vel_y, s16 vel_z, s16 yaw_dps)
 {
     nav_ctrl_cmd.data.roll = 0;
     nav_ctrl_cmd.data.pitch = 0;
-    nav_ctrl_cmd.data.throttle = rc_ctrl_cmd.data.throttle;
+    nav_ctrl_cmd.data.throttle = POINT_NAV_THROTTLE_MID;
     nav_ctrl_cmd.data.vel_x = vel_x;
     nav_ctrl_cmd.data.vel_y = vel_y;
-    nav_ctrl_cmd.data.vel_z = 0;
+    nav_ctrl_cmd.data.vel_z = vel_z;
     nav_ctrl_cmd.data.yaw_dps = yaw_dps;
 }
 
 //将速度清零
 static void PointNav_ClearRealtimeVelocity(void)
 {
-    PointNav_WriteRealtimeVelocity(0, 0, 0);
+    PointNav_WriteRealtimeVelocity(0, 0, 0, 0);
 }
 
 //速度控制量选择逻辑
@@ -394,14 +352,16 @@ static void PointNav_RealtimeControlMuxUpdate(void)
     Data.fun[0x41].wait_to_send = 1;
 }
 
-//判断雷达位置和四元数有没有正常更新
-//超过 POINT_NAV_SENSOR_TIMEOUT_MS，也就是 300ms 没更新，就认为雷达不健康
+// Check radar position, quaternion and 0x04 yaw frame update timeout.
+// If any stream is stale for POINT_NAV_SENSOR_TIMEOUT_MS, radar is unhealthy.
 static u8 PointNav_RadarDataHealthy(void)
 {
     static u8 last_pos_update_cnt;
     static u8 last_qua_update_cnt;
+    static u8 last_yaw_update_cnt;
     static u32 last_pos_update_ms;
     static u32 last_qua_update_ms;
+    static u32 last_yaw_update_ms;
     u32 now_ms = HAL_GetTick();
 
     if(last_pos_update_cnt != radar_pos_update_cnt)
@@ -416,7 +376,13 @@ static u8 PointNav_RadarDataHealthy(void)
         last_qua_update_ms = now_ms;
     }
 
-    if(radar_pos_update_cnt == 0 || radar_qua_update_cnt == 0)
+    if(last_yaw_update_cnt != radar_yaw_update_cnt)
+    {
+        last_yaw_update_cnt = radar_yaw_update_cnt;
+        last_yaw_update_ms = now_ms;
+    }
+
+    if(radar_pos_update_cnt == 0 || radar_qua_update_cnt == 0 || radar_yaw_update_cnt == 0)
     {
         return 0;
     }
@@ -427,6 +393,11 @@ static u8 PointNav_RadarDataHealthy(void)
     }
 
     if((now_ms - last_qua_update_ms) > POINT_NAV_SENSOR_TIMEOUT_MS)
+    {
+        return 0;
+    }
+
+    if((now_ms - last_yaw_update_ms) > POINT_NAV_SENSOR_TIMEOUT_MS)
     {
         return 0;
     }
@@ -443,7 +414,7 @@ static void PointNav_ResetControlPidFromMeasurement(void)
     float yaw_deg;
 
     PointNav_GetRadarSnapshot(&snapshot);
-    yaw_deg = PointNav_GetRadarYawDeg(&snapshot.qua);
+    yaw_deg = PointNav_GetRadarYawDeg(&snapshot);
 
     PID_Reset(&loc_pid[PID_X]);
     PID_Reset(&loc_pid[PID_Y]);
@@ -463,6 +434,7 @@ static u8 PointNav_UpdateFromRadarPid(const PointNav_RadarSnapshot_t *snapshot)
     static u8 last_radar_pos_update_cnt;
     s16 vel_x;
     s16 vel_y;
+    s16 vel_z;
     s16 yaw_dps;
     s16 body_vel_x;
     s16 body_vel_y;
@@ -481,7 +453,7 @@ static u8 PointNav_UpdateFromRadarPid(const PointNav_RadarSnapshot_t *snapshot)
 
     last_radar_pos_update_cnt = snapshot->pos_update_cnt;
 
-    yaw_deg = PointNav_GetRadarYawDeg(&snapshot->qua);
+    yaw_deg = PointNav_GetRadarYawDeg(snapshot);
     vel_x = PointNav_LimitS16(PID_Update(&loc_pid[PID_X],
                                          (float)point_navigation_target.target_x,
                                          (float)snapshot->pos.x_x100),
@@ -489,6 +461,10 @@ static u8 PointNav_UpdateFromRadarPid(const PointNav_RadarSnapshot_t *snapshot)
     vel_y = PointNav_LimitS16(PID_Update(&loc_pid[PID_Y],
                                          (float)point_navigation_target.target_y,
                                          (float)snapshot->pos.y_x100),
+                              -100, 100);
+    vel_z = PointNav_LimitS16(PID_Update(&loc_pid[PID_Z],
+                                         (float)point_navigation_target.target_z,
+                                         (float)snapshot->pos.z_x100),
                               -100, 100);
     yaw_pid_out = PID_UpdateYaw(&loc_pid[PID_YAW],
                                 (float)point_navigation_target.target_yaw,
@@ -500,15 +476,14 @@ static u8 PointNav_UpdateFromRadarPid(const PointNav_RadarSnapshot_t *snapshot)
 
     PointNav_RadarVelocityToBody(&snapshot->qua, vel_x, vel_y, &body_vel_x, &body_vel_y);
 
-    PointNav_WriteRealtimeVelocity(-body_vel_x, body_vel_y, yaw_dps);
-    PointNav_PrintDebug(snapshot, vel_x, vel_y, body_vel_x, body_vel_y);
+    PointNav_WriteRealtimeVelocity(body_vel_x, body_vel_y, vel_z, yaw_dps);
     update_Flag.Radar_PID_Cmd_Vel = 1;
     FreqDetector_OnData(&JN_freq_detector[Data_stream_Radar_cmd_vel]);
 
     return 1;
 }
 
-//不用pid，直接使用JetsonNano发来的速度指令
+//不用 PID，直接使用 JetsonNano 发来的速度指令
 static u8 PointNav_UpdateFromJnCmdVel(void)
 {
     s16 yaw_dps;
@@ -516,6 +491,7 @@ static u8 PointNav_UpdateFromJnCmdVel(void)
     yaw_dps = (s16)(speed_cmd_un.cmd_vel_data.yaw_x100 / 100);
     PointNav_WriteRealtimeVelocity(speed_cmd_un.cmd_vel_data.vx_x100,
                                    speed_cmd_un.cmd_vel_data.vy_x100,
+                                   speed_cmd_un.cmd_vel_data.vz_x100,
                                    yaw_dps);
 
     return 1;
@@ -542,7 +518,7 @@ void PointNavigation_Start(void)
     point_navigation_target.target_x = snapshot.pos.x_x100;
     point_navigation_target.target_y = snapshot.pos.y_x100;
     point_navigation_target.target_z = snapshot.pos.z_x100;
-    point_navigation_target.target_yaw = (s16)PointNav_GetRadarYawDeg(&snapshot.qua);
+    point_navigation_target.target_yaw = (s16)PointNav_GetRadarYawDeg(&snapshot);
 
     PointNav_ResetControlPidFromMeasurement();
     PointNav_ClearRealtimeVelocity();
@@ -561,13 +537,13 @@ void PointNavigation_Stop(void)
     PointNav_RealtimeControlMuxUpdate();
 }
 
-//设置速度来源的函数：来源于雷达 PID、相机 PID、JetsonNano 速度
+//设置速度来源：雷达 PID、相机 PID 或 JetsonNano 速度
 void PointNavigation_SetCmdVelSource(_cmd_vel_sorce source)
 {
     cmd_vel_sorce = source;
 }
 
-//设置稳定条件，比如选择误差阈值还是稳定时间
+//设置稳定条件，比如误差阈值和稳定时间
 void PointNavigation_SetStableCondition(FC_Stable_t stable)
 {
     point_navigation_stable = stable;
@@ -664,7 +640,7 @@ static u8 PointNav_YawDirectionTestUpdate(void)
 
     point_navigation_enable = 1;
     cmd_vel_sorce = JN_Cmd_vel;
-    PointNav_WriteRealtimeVelocity(0, 0, POINT_NAV_YAW_DIR_TEST_DPS);
+    PointNav_WriteRealtimeVelocity(0, 0, 0, POINT_NAV_YAW_DIR_TEST_DPS);
     PointNav_RealtimeControlMuxUpdate();
 
     return 1;
@@ -687,7 +663,6 @@ void PointNavigation_Update(void)
 
     if(point_navigation_enable == 0)
     {
-        PointNav_PrintDebug(&snapshot, 0, 0, 0, 0);
         PointNav_RealtimeControlMuxUpdate();
         return;
     }

@@ -225,6 +225,7 @@ void RC_Data_Task(float dT_s)
     s16 pitch;
     s16 throttle;
     s16 yaw;
+    u8 mode;
 
     SyncSwitchState();
     RadarPowerControlTask();
@@ -242,7 +243,8 @@ void RC_Data_Task(float dT_s)
         return;
     }
 
-    LX_Change_Mode(FlightModeFromChannel(Channel_of_rc.data.ch[ch_5_aux1]));
+    mode = FlightModeFromChannel(Channel_of_rc.data.ch[ch_5_aux1]);
+    LX_Change_Mode(mode);
 
     roll = Deadzone(Channel_of_rc.data.ch[ch_1_rol] - RC_MID_VALUE, RC_DEADZONE_ROLL_PITCH);
     pitch = Deadzone(Channel_of_rc.data.ch[ch_2_pit] - RC_MID_VALUE, RC_DEADZONE_ROLL_PITCH);

@@ -749,6 +749,16 @@
               <FileType>5</FileType>
               <FilePath>.\DriversMCU\Drv_adc.h</FilePath>
             </File>
+            <File>
+              <FileName>Drv_Menu.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\DriversMCU\Drv_Menu.c</FilePath>
+            </File>
+            <File>
+              <FileName>Drv_Menu.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\DriversMCU\Drv_Menu.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -864,6 +874,16 @@
               <FileType>5</FileType>
               <FilePath>.\Protocol\Optical_Flow_Sensor.h</FilePath>
             </File>
+            <File>
+              <FileName>User_Task.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Protocol\User_Task.c</FilePath>
+            </File>
+            <File>
+              <FileName>User_Task.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Protocol\User_Task.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -918,6 +938,16 @@
               <FileName>Kalman_Filter.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\Algorithm\Kalman_Filter.h</FilePath>
+            </File>
+            <File>
+              <FileName>WayPoint_Mission.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Algorithm\WayPoint_Mission.c</FilePath>
+            </File>
+            <File>
+              <FileName>WayPoint_Mission.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Algorithm\WayPoint_Mission.h</FilePath>
             </File>
           </Files>
         </Group>

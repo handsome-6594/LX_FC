@@ -44,6 +44,8 @@
 #include "To_LX_Fun.h"
 #include "JetsonNano_Data_Transmit.h"
 #include "Point_Navigation.h"
+#include "User_Task.h"
+#include "Drv_Menu.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -66,14 +68,6 @@
 //osSemaphoreId_t OLED_i2c_Binary_SemaphoreHandle;
 osSemaphoreId_t LX_UART_Binary_SemaphoreHandle = NULL;
 /* USER CODE END Variables */
-/* Definitions for defaultTask */
-osThreadId_t keyTaskHandle;
-const osThreadAttr_t keyTask_attributes = {
-  .name = "keyTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
-};
-
 osThreadId_t oledTaskHandle;
 const osThreadAttr_t oledTask_attributes = {
   .name = "oledTask",
@@ -121,8 +115,6 @@ const osThreadAttr_t jetsonRxTask_attributes = {
 /* USER CODE BEGIN FunctionPrototypes */
 
 /* USER CODE END FunctionPrototypes */
-void StartKeyTestTask(void *argument);
-void StartOledTestTask(void *argument);
 void StartOledTestTask(void *argument);
 void StartpwmPrintTask(void *argument);
 void Startuart4LXTask(void *argument);
@@ -158,8 +150,6 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
   /* USER CODE END RTOS_QUEUES */
-  keyTaskHandle = osThreadNew(StartKeyTestTask, NULL, &keyTask_attributes);
-
   oledTaskHandle = osThreadNew(StartOledTestTask, NULL, &oledTask_attributes);
 
   pwmPrintTaskHandle = osThreadNew(StartpwmPrintTask, NULL, &pwmPrintTask_attributes);
@@ -182,32 +172,6 @@ void MX_FREERTOS_Init(void) {
 
 }
 
-/* USER CODE BEGIN Header_StartDefaultTask */
-/**
-  * @brief  Function implementing the defaultTask thread.
-  * @param  argument: Not used
-  * @retval None
-  */
-void StartKeyTestTask(void *argument)
-{
-  uint8_t led_on = 0;
-  uint8_t last_key = 0;
-
-  for (;;)
-  {
-    Key_Status_t key = GetKeyStatus();
-
-    if(key.key_back_pressed && !last_key)
-    {
-      led_on = !led_on;
-      LED_On_Off(led_on ? LED_B_BIT : 0);
-    }
-
-    last_key = key.key_back_pressed;
-    osDelay(10);
-  }
-}
-
 /* USER CODE BEGIN Header_StartUartTestTask */
 /* USER CODE END Header_StartUartTestTask */
 
@@ -216,27 +180,15 @@ void StartKeyTestTask(void *argument)
 
 void StartOledTestTask(void *argument)
 {
-  uint32_t count = 0;
+  (void)argument;
 
-  // 初始化 OLED
   OLED_Init();
-  OLED_Clear();
-
-  // 显示固定文本
-  OLED_ShowString(0, 0, "STM32H743", OLED_8X16);
-  OLED_ShowString(0, 16, "OLED Test", OLED_8X16);
-  OLED_Update();
+  DrvMenu_Init();
 
   for(;;)
   {
-    count++;
-
-    // 显示计数器
-    OLED_ShowString(0, 32, "Count:", OLED_6X8);
-    OLED_ShowNum(42, 32, count, 8, OLED_6X8);
-    OLED_Update();
-
-    osDelay(100);  // 每 100ms 更新一次
+    DrvMenu_Task();
+    osDelay(20);
   }
 }
 
@@ -271,12 +223,19 @@ void Startuart4LXTask(void *argument)
   DrvUart4_Fifo_Init();
   DrvUart4_Receive_Enable();
   PointNavigation_Init();
+#if USER_TASK_ENABLE != 0U
+  UserTask_Init();
+#endif
 
   for(;;)
   {
     DrvRcInputTask(0.001f);
     RC_Data_Task(0.001f);
+#if USER_TASK_ENABLE != 0U
+    UserTask_Update();
+#else
     PointNavigation_TestPointTask();
+#endif
     PointNavigation_Update();
     drvU4DataCheck();
     H743_Data_Transmit_Check();
@@ -302,7 +261,7 @@ void StartOpticalFlowTask(void *argument)
   OpticalFlow_Init();
   ExtSensorFusion_Init();
   DrvUart2_Fifo_Init();
-  DrvUart2_RegisterNotifyTask(xTaskGetCurrentTaskHandle());//光流任务注册自己
+  DrvUart2_RegisterNotifyTask(xTaskGetCurrentTaskHandle());// optical flow task notify
   DrvUart2_Receive_Enable();
 
   for(;;)

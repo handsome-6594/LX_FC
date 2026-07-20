@@ -50,3 +50,4 @@
 323232\to_lx_fun.o: ../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_hcd.h
 323232\to_lx_fun.o: FcSrc\ANO_TO_H743_Data_Transmit.h
 323232\to_lx_fun.o: .\DriversMCU\Drv_led.h
+323232\to_lx_fun.o: FcSrc\FC_State.h

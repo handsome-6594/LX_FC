@@ -77,3 +77,5 @@
 323232\freertos.o: .\FcSrc\To_LX_Fun.h
 323232\freertos.o: .\FcSrc\JetsonNano_Data_Transmit.h
 323232\freertos.o: .\Algorithm\Point_Navigation.h
+323232\freertos.o: .\Protocol\User_Task.h
+323232\freertos.o: .\DriversMCU\Drv_Menu.h

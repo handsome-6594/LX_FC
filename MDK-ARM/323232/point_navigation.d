@@ -65,4 +65,3 @@
 323232\point_navigation.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h
 323232\point_navigation.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h
 323232\point_navigation.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h
-323232\point_navigation.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h

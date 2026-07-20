@@ -63,10 +63,30 @@ FIFO_Type *pOFfifo = NULL;
 
 extern DMA_HandleTypeDef hdma_usart2_rx;
 
+volatile uint32_t of_uart2_rx_event_cnt = 0;
+volatile uint32_t of_uart2_rx_byte_cnt = 0;
+volatile uint32_t of_uart2_receive_enable_cnt = 0;
+volatile uint32_t of_uart2_receive_enable_fail_cnt = 0;
+volatile uint32_t of_uart2_receive_enable_status = 0;
+volatile uint32_t of_uart2_error_cnt = 0;
+volatile uint32_t of_uart2_error_code = 0;
+
 void DrvUart2_Receive_Enable(void)
 {
-    HAL_UARTEx_ReceiveToIdle_DMA(&huart2, OF_RxBuffer, OF_RXBufferSize);
-    __HAL_DMA_DISABLE_IT(&hdma_usart2_rx, DMA_IT_HT);
+    HAL_StatusTypeDef status;
+
+    of_uart2_receive_enable_cnt++;
+    status = HAL_UARTEx_ReceiveToIdle_DMA(&huart2, OF_RxBuffer, OF_RXBufferSize);
+    of_uart2_receive_enable_status = (uint32_t)status;
+    if(status == HAL_OK)
+    {
+        __HAL_DMA_DISABLE_IT(&hdma_usart2_rx, DMA_IT_HT);
+    }
+    else
+    {
+        of_uart2_receive_enable_fail_cnt++;
+        of_uart2_error_code = huart2.ErrorCode;
+    }
 }
 
 void DrvUart2_Fifo_Init(void)
@@ -89,6 +109,9 @@ void DrvUart2_RxEventCallback(uint16_t size)
 {
     BaseType_t highTaskWoken = pdFALSE;
 
+    of_uart2_rx_event_cnt++;
+    of_uart2_rx_byte_cnt += size;
+
     if(pOFfifo != NULL && size <= OF_RXBufferSize)
     {
         FIFO_Add(pOFfifo, OF_RxBuffer, size);
@@ -107,7 +130,13 @@ void DrvUart2_ErrorCallback(void)
 {
     BaseType_t highTaskWoken = pdFALSE;
 
+    of_uart2_error_cnt++;
+    of_uart2_error_code = huart2.ErrorCode;
+
+    HAL_UART_AbortReceive_IT(&huart2);
+    MX_USART2_UART_Init();
     DrvUart2_Receive_Enable();
+    __HAL_UNLOCK(&huart2);
 
     if(Uart2NotifyTaskHandle != NULL)
     {

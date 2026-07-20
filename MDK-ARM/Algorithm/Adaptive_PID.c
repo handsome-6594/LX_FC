@@ -47,8 +47,8 @@ void PID_Init(void)
     loc_pid[PID_X].kp = 0.30f;
     loc_pid[PID_X].ki = 0.00f;
     loc_pid[PID_X].kd = 0.00f;
-    loc_pid[PID_X].output_min = -15.0f;
-    loc_pid[PID_X].output_max = 15.0f;
+    loc_pid[PID_X].output_min = -20.0f;
+    loc_pid[PID_X].output_max = 20.0f;
     loc_pid[PID_X].integral_min = -0.0f;
     loc_pid[PID_X].integral_max = 0.0f;
     loc_pid[PID_X].deadband = 3.0f;
@@ -58,11 +58,11 @@ void PID_Init(void)
     loc_pid[PID_Y] = loc_pid[PID_X];
     PID_Reset(&loc_pid[PID_Y]);
 
-    loc_pid[PID_Z].kp = 0.25f;
+    loc_pid[PID_Z].kp = 0.30f;
     loc_pid[PID_Z].ki = 0.00f;
     loc_pid[PID_Z].kd = 0.00f;
-    loc_pid[PID_Z].output_min = -5.0f;
-    loc_pid[PID_Z].output_max = 5.0f;
+    loc_pid[PID_Z].output_min = -18.0f;
+    loc_pid[PID_Z].output_max = 18.0f;
     loc_pid[PID_Z].integral_min = -0.0f;
     loc_pid[PID_Z].integral_max = 0.0f;
     loc_pid[PID_Z].deadband = 3.0f;
@@ -72,8 +72,8 @@ void PID_Init(void)
     loc_pid[PID_YAW].kp = 0.35f;
     loc_pid[PID_YAW].ki = 0.00f;
     loc_pid[PID_YAW].kd = 0.00f;
-    loc_pid[PID_YAW].output_min = -30.0f;
-    loc_pid[PID_YAW].output_max = 30.0f;
+    loc_pid[PID_YAW].output_min = -5.0f;
+    loc_pid[PID_YAW].output_max = 5.0f;
     loc_pid[PID_YAW].integral_min = -5.0f;
     loc_pid[PID_YAW].integral_max = 5.0f;
     loc_pid[PID_YAW].deadband = 1.0f;

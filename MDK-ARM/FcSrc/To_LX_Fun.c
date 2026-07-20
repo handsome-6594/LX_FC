@@ -55,6 +55,7 @@ u8 LX_Change_Mode(u8 new_mode)
 
     if(old_mode == new_mode)
     {
+        lx_mode_cmd_target = new_mode;
         return 1;
     }
 
@@ -68,7 +69,7 @@ u8 LX_Change_Mode(u8 new_mode)
     cmd.CMD[1] = 0x01;
     cmd.CMD[2] = new_mode;
 
-    if(CMD_Send(0xFF, &cmd))  //CMD_Send返回1就是待发送，返回0不发送
+    if(CMD_Send(0xFF, &cmd))
     {
         old_mode = new_mode;
         lx_mode_cmd_target = new_mode;

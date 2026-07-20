@@ -60,6 +60,7 @@
 "323232\oled.o"
 "323232\oled_data.o"
 "323232\drv_adc.o"
+"323232\drv_menu.o"
 "323232\ano_to_h743_data_transmit.o"
 "323232\fc_state.o"
 "323232\pwm.o"
@@ -70,11 +71,13 @@
 "323232\to_lx_fun.o"
 "323232\radar_position.o"
 "323232\optical_flow_sensor.o"
+"323232\user_task.o"
 "323232\freq_detector.o"
 "323232\map_update.o"
 "323232\adaptive_pid.o"
 "323232\point_navigation.o"
 "323232\kalman_filter.o"
+"323232\waypoint_mission.o"
 --strict --scatter "323232\323232.sct"
 --summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
 --info sizes --info totals --info unused --info veneers

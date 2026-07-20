@@ -16,8 +16,10 @@ Radar_Pos_un Pos_of_Radar;
 volatile Radar_Pos_16_un Pos16_of_Radar;
 volatile Radar_Speed_un Speed_of_Radar;
 volatile Radar_Cmd_Vel_un speed_cmd_un;
+volatile Radar_YAW_un Radar_YAW_tar_un;
 volatile u8 radar_pos_update_cnt = 0;
 volatile u8 radar_qua_update_cnt = 0;
+volatile u8 radar_yaw_update_cnt = 0;
 Camera_data_un Camera_Pos_data;
 x10000_Radar_qua_un Radar_qua_x10000;
 Radar_qua real_Radar_qua;
@@ -29,7 +31,8 @@ volatile _update_Flag_st update_Flag = {
     .Radar_Cmd_Vel = 0,
     .Radar_PID_Cmd_Vel = 0,
     .Camera_PID_Cmd_Vel = 0,
-    .Radar_qua = 0
+    .Radar_qua = 0,
+    .Radar_Yaw = 0
 };
 
 static u8 rx_Buffer[256];
@@ -38,7 +41,7 @@ static u8 Data_cnt = 0;
 
 static void H743_Received_Data_From_JetsonNano_Analysis(const u8 *data, u8 len);
 static void JN_Send_Data_Buffer(u8 frame_num, frame_pack *pack);
-static void H743_To_JN_FrameSend(u8 frame_num, Data_Frame *frame);
+static u8 H743_To_JN_FrameSend(u8 frame_num, Data_Frame *frame);
 static u8 H743_To_JN_Send_Data(u8 *data, u8 length);
 static void JN_Check_To_Send(u8 frame_num);
 static inline void JN_CK_Back_Check(void);
@@ -229,7 +232,17 @@ static void H743_Received_Data_From_JetsonNano_Analysis(const u8 *data, u8 len)
     //雷达yaw轴数据
     else if(*(data + 2) == 0X04)
     {
-    //需要的时候再实现
+        if(data[3] != sizeof(Radar_YAW_tar_un.byte_data))
+        {
+            return;
+        }
+        for(u8 i = 0; i < sizeof(Radar_YAW_tar_un.byte_data); i++)
+        {
+            Radar_YAW_tar_un.byte_data[i] = data[4 + i];
+        }
+        radar_yaw_update_cnt++;
+        update_Flag.Radar_Yaw = 1;
+        FreqDetector_OnData(&JN_freq_detector[Data_stream_Radar_Yaw]);
     }
 
     //上位机速度控制量
@@ -334,7 +347,7 @@ static void H743_Received_Data_From_JetsonNano_Analysis(const u8 *data, u8 len)
             return;
         }
 
-        JN_DT_st.ack_of_check.ID = *(data + 4);
+        JN_DT_st.ack_of_check.ID = *(data + 2);
         JN_DT_st.ack_of_check.SC = sum1_check;
         JN_DT_st.ack_of_check.AC = sum2_check;
         JN_CK_Back(HW_ALL, &JN_DT_st.ack_of_check);
@@ -375,7 +388,7 @@ static void JN_Send_Data_Buffer(u8 frame_num, frame_pack *pack)
 }
 
 //H743给JetsonNano回一个完整的帧
-static void H743_To_JN_FrameSend(u8 frame_num, Data_Frame *frame)
+static u8 H743_To_JN_FrameSend(u8 frame_num, Data_Frame *frame)
 {
     frame_pack pack;
     u8 check_sum1 = 0;
@@ -383,7 +396,7 @@ static void H743_To_JN_FrameSend(u8 frame_num, Data_Frame *frame)
 
     if(frame == NULL)
     {
-        return;
+        return 0;
     }
 
     FramePack_Init(&pack, send_buffer, sizeof(send_buffer));
@@ -411,7 +424,7 @@ static void H743_To_JN_FrameSend(u8 frame_num, Data_Frame *frame)
         JN_DT_st.checksum_ok.AC = check_sum2;
     }
 
-    H743_To_JN_Send_Data(send_buffer, pack.len);
+    return H743_To_JN_Send_Data(send_buffer, pack.len);
 }
 
 static u8 H743_To_JN_Send_Data(u8 *data, u8 length)
@@ -423,8 +436,10 @@ static void JN_Check_To_Send(u8 frame_num)
 {
     if(JN_DT_st.fun[frame_num].wait_to_send)
     {
-        JN_DT_st.fun[frame_num].wait_to_send = 0;
-        H743_To_JN_FrameSend(frame_num, &JN_DT_st.fun[frame_num]);
+        if(H743_To_JN_FrameSend(frame_num, &JN_DT_st.fun[frame_num]))
+        {
+            JN_DT_st.fun[frame_num].wait_to_send = 0;
+        }
     }
 }
 

@@ -53,4 +53,3 @@
 323232\map_update.o: .\DriversMCU\Drv_led.h
 323232\map_update.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdbool.h
 323232\map_update.o: .\DriversMCU\fifo.h
-323232\map_update.o: D:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h

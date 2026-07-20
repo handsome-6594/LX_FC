@@ -66,6 +66,18 @@ typedef union
     Radar_Cmd_Vel cmd_vel_data;
 }Radar_Cmd_Vel_un;
 
+//0X04 Radar yaw angle, unit: degree x100
+typedef struct
+{
+    s16 yaw_x100;
+}__attribute__((__packed__))Radar_YAW_st;
+
+typedef union
+{
+    u8 byte_data[2];
+    Radar_YAW_st st_data;
+}Radar_YAW_un;
+
 //0X06 雷达四元数
 typedef struct
 {
@@ -131,6 +143,7 @@ typedef struct
     u8 Radar_PID_Cmd_Vel;
     u8 Camera_PID_Cmd_Vel;
     u8 Radar_qua;
+    u8 Radar_Yaw;
 }_update_Flag_st;
 
 
@@ -138,8 +151,10 @@ extern Radar_Pos_un Pos_of_Radar;
 extern volatile Radar_Pos_16_un Pos16_of_Radar;
 extern volatile Radar_Speed_un Speed_of_Radar;
 extern volatile Radar_Cmd_Vel_un speed_cmd_un;
+extern volatile Radar_YAW_un Radar_YAW_tar_un;
 extern volatile u8 radar_pos_update_cnt;
 extern volatile u8 radar_qua_update_cnt;
+extern volatile u8 radar_yaw_update_cnt;
 extern volatile _update_Flag_st update_Flag;
 extern Camera_data_un Camera_Pos_data;
 extern x10000_Radar_qua_un Radar_qua_x10000;

@@ -383,9 +383,9 @@ static void Send_Data_Buffer(u8 frame_num, frame_pack *pack)
     {
         case 0X00://返回那些需要0x00校验帧的
         {
-            FramePack_PutByte(pack, the_check_ack.ID);
-            FramePack_PutByte(pack, the_check_ack.SC);
-            FramePack_PutByte(pack, the_check_ack.AC);
+            FramePack_PutByte(pack, Data.ack_of_check.ID);
+            FramePack_PutByte(pack, Data.ack_of_check.SC);
+            FramePack_PutByte(pack, Data.ack_of_check.AC);
         }
         break;  
         case 0X0D://ADC采集到的电池电压和电流
@@ -462,7 +462,7 @@ static void Send_Data_Buffer(u8 frame_num, frame_pack *pack)
 
 //==========================================================
 //H743:我要组帧发给凌霄喽
-static void H743_To_LX_FrameSend(u8 frame_num, Data_Frame *frame)
+static u8 H743_To_LX_FrameSend(u8 frame_num, Data_Frame *frame)
 {
     frame_pack pack;
     u8 check_sum1 = 0;
@@ -523,6 +523,7 @@ static void H743_To_LX_FrameSend(u8 frame_num, Data_Frame *frame)
         {
             lx_uart4_send40_ok_cnt++;
         }
+        return 1;
     }
     else
     {
@@ -540,6 +541,7 @@ static void H743_To_LX_FrameSend(u8 frame_num, Data_Frame *frame)
         }
     }
 
+    return 0;
 }
 
 //这个函数不对外暴露，只是一个模块内封装的接口
@@ -553,15 +555,17 @@ static void LX_Check_To_Send(u8 frame_num)
 {
     if(Data.fun[frame_num].wait_to_send)
     {
-        Data.fun[frame_num].wait_to_send = 0;
-        H743_To_LX_FrameSend(frame_num, &Data.fun[frame_num]);
+        if(H743_To_LX_FrameSend(frame_num, &Data.fun[frame_num]))
+        {
+            Data.fun[frame_num].wait_to_send = 0;
+        }
     }
     else if(Data.fun[frame_num].fre_ms != 0)
     {
         if(Data.fun[frame_num].count_mstime >= Data.fun[frame_num].fre_ms)
         {
             Data.fun[frame_num].count_mstime = 1;
-            H743_To_LX_FrameSend(frame_num, &Data.fun[frame_num]);
+            (void)H743_To_LX_FrameSend(frame_num, &Data.fun[frame_num]);
         }
         else
         {
