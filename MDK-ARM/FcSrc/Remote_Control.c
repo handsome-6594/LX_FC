@@ -5,6 +5,9 @@
 #define SBUS_HEADER 0x0F
 #define SBUS_END_BYTE 0x00
 #define SBUS_TIMEOUT_MS 300
+#define SBUS_FRAME_LOST_BIT 0x04
+#define SBUS_FAILSAFE_BIT 0x08
+#define SBUS_FRAME_LOST_LIMIT 10U
 #define SBUS_RAW_MIN 172
 #define SBUS_RAW_MAX 1811
 #define SBUS_DMA_BUF_LEN 64
@@ -25,6 +28,7 @@ static u8 sbus_index;
 static u16 sbus_dma_pos;
 static u32 sbus_last_update_ms;
 static u8 sbus_signal_lost = 1;
+static u8 sbus_lost_frame_count;
 
 //限幅函数
 static s16 LimitS16(s16 value, s16 min, s16 max)
@@ -53,6 +57,7 @@ static s16 SbusRawToPwm(u16 raw)
 static void SbusDecodeFrame(const u8 frame[SBUS_FRAME_LEN])
 {
     u16 raw_ch[16];
+    u8 flags;
 
     raw_ch[0]  = ((u16)frame[1]       | ((u16)frame[2]  << 8)) & 0x07FF;
     raw_ch[1]  = (((u16)frame[2] >> 3) | ((u16)frame[3]  << 5)) & 0x07FF;
@@ -77,7 +82,30 @@ static void SbusDecodeFrame(const u8 frame[SBUS_FRAME_LEN])
     }
     sbus_frame_cnt++;
 
-    sbus_signal_lost = ((frame[23] & 0x0C) != 0) ? 1 : 0;
+    flags = frame[23];
+    if((flags & SBUS_FAILSAFE_BIT) != 0U)
+    {
+        sbus_lost_frame_count = SBUS_FRAME_LOST_LIMIT;
+        sbus_signal_lost = 1;
+    }
+    else if((flags & SBUS_FRAME_LOST_BIT) != 0U)
+    {
+        if(sbus_lost_frame_count < SBUS_FRAME_LOST_LIMIT)
+        {
+            sbus_lost_frame_count++;
+        }
+
+        if(sbus_lost_frame_count >= SBUS_FRAME_LOST_LIMIT)
+        {
+            sbus_signal_lost = 1;
+        }
+    }
+    else
+    {
+        sbus_lost_frame_count = 0U;
+        sbus_signal_lost = 0;
+    }
+
     sbus_last_update_ms = HAL_GetTick();
 }
 
@@ -186,6 +214,7 @@ void DrvRcInputInit(void)
     sbus_index = 0;
     sbus_dma_pos = 0;
     sbus_signal_lost = 1;
+    sbus_lost_frame_count = 0U;
     sbus_last_update_ms = HAL_GetTick();
     SbusStartDmaReceive();
 }
@@ -199,6 +228,7 @@ void DrvRcInputTask(float dt)
 
     if((HAL_GetTick() - sbus_last_update_ms) > SBUS_TIMEOUT_MS)
     {
+        sbus_lost_frame_count = SBUS_FRAME_LOST_LIMIT;
         sbus_signal_lost = 1;
     }
 }

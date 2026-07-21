@@ -10,10 +10,16 @@
 
 #define USER_TASK_SENSOR_TIMEOUT_MS      300U
 #define USER_TASK_TAKEOFF_Z_X100         50
-#define USER_TASK_TEST_POINT_COUNT       2U
+#define USER_TASK_LAND_APPROACH_Z_X100   25
+#define USER_TASK_LAND_DESCEND_SPEED     (-6)
+#define USER_TASK_LAND_COMPLETE_Z_X100   8
+#define USER_TASK_LAND_COMPLETE_COUNT    20U
+#define USER_TASK_TEST_POINT_COUNT       1U
 #define USER_TASK_GROUND_TEST_X_X100     50
-#define USER_TASK_DEBUG_ENABLE           (0U)
+#define USER_TASK_DEBUG_ENABLE           (1U)
 #define USER_TASK_DEBUG_PERIOD_MS        200U
+#define USER_TASK_SWITCH_STOP_COUNT      10U
+#define USER_TASK_RADAR_STOP_COUNT       20U
 
 typedef enum
 {
@@ -21,6 +27,10 @@ typedef enum
     USER_TASK_STATE_TAKEOFF,
     USER_TASK_STATE_LOAD_POINT,
     USER_TASK_STATE_FLY_LINE,
+    USER_TASK_STATE_RETURN_HOME,
+    USER_TASK_STATE_LAND_APPROACH,
+    USER_TASK_STATE_LAND_DESCEND,
+    USER_TASK_STATE_LANDED,
     USER_TASK_STATE_HOLD_LAST,
 } UserTaskState_e;
 
@@ -41,6 +51,78 @@ static s16 user_task_target_yaw;
 static u8 user_task_segment_id;
 static u8 user_task_active;
 static u8 user_task_initialized;
+static u8 user_task_land_low_count;
+static u8 user_task_last_land_pos_update_cnt;
+static u8 user_task_switch_bad_count;
+static u8 user_task_radar_bad_count;
+
+static const char *UserTask_StateName(UserTaskState_e state)
+{
+    switch(state)
+    {
+        case USER_TASK_STATE_IDLE:
+            return "IDLE";
+
+        case USER_TASK_STATE_TAKEOFF:
+            return "TAKEOFF";
+
+        case USER_TASK_STATE_LOAD_POINT:
+            return "LOAD_POINT";
+
+        case USER_TASK_STATE_FLY_LINE:
+            return "FLY_LINE";
+
+        case USER_TASK_STATE_RETURN_HOME:
+            return "RETURN_HOME";
+
+        case USER_TASK_STATE_LAND_APPROACH:
+            return "LAND_APPROACH";
+
+        case USER_TASK_STATE_LAND_DESCEND:
+            return "LAND_DESCEND";
+
+        case USER_TASK_STATE_LANDED:
+            return "LANDED";
+
+        case USER_TASK_STATE_HOLD_LAST:
+            return "HOLD_LAST";
+
+        default:
+            return "UNKNOWN";
+    }
+}
+
+static void UserTask_SetState(UserTaskState_e next_state, const char *reason)
+{
+#if USER_TASK_DEBUG_ENABLE
+    if(user_task_state != next_state)
+    {
+        printf("wp_evt %s->%s seg=%u p[%d,%d,%d] home[%d,%d] sw[%u,%u,%u] sys[%u,%u,%u] bad[%u,%u] land=%u reason=%s\r\n",
+               UserTask_StateName(user_task_state),
+               UserTask_StateName(next_state),
+               user_task_segment_id,
+               Pos16_of_Radar.pos_data.x_x100,
+               Pos16_of_Radar.pos_data.y_x100,
+               Pos16_of_Radar.pos_data.z_x100,
+               user_task_takeoff_x,
+               user_task_takeoff_y,
+               Switch_sta_st.SWC,
+               Switch_sta_st.SWD,
+               Switch_sta_st.SWB,
+               RemoteControl_IsSignalLost(),
+               state.is_unlocked,
+               RC_MotorIsUnlocked(),
+               user_task_switch_bad_count,
+               user_task_radar_bad_count,
+               user_task_land_low_count,
+               (reason != 0) ? reason : "");
+    }
+#else
+    (void)reason;
+#endif
+
+    user_task_state = next_state;
+}
 
 static u8 UserTask_SwitchRequested(void)
 {
@@ -49,15 +131,31 @@ static u8 UserTask_SwitchRequested(void)
             Switch_sta_st.SWB == Switch_Low) ? 1U : 0U;
 }
 
-static u8 UserTask_SystemReady(void)
+static const char *UserTask_NotReadyReason(void)
 {
 #if USER_TASK_GROUND_TEST_ENABLE
-    return (RemoteControl_IsSignalLost() == 0U) ? 1U : 0U;
+    if(RemoteControl_IsSignalLost() != 0U)
+    {
+        return "rc_lost";
+    }
 #else
-    return (RemoteControl_IsSignalLost() == 0U &&
-            state.is_unlocked != 0U &&
-            RC_MotorIsUnlocked() != 0U) ? 1U : 0U;
+    if(RemoteControl_IsSignalLost() != 0U)
+    {
+        return "rc_lost";
+    }
+
+    if(state.is_unlocked == 0U)
+    {
+        return "fc_locked";
+    }
+
+    if(RC_MotorIsUnlocked() == 0U)
+    {
+        return "motor_locked";
+    }
 #endif
+
+    return 0;
 }
 
 static u8 UserTask_RadarDataHealthy(void)
@@ -155,7 +253,8 @@ static void UserTask_PublishVelocity(const Radar_Cmd_Vel *cmd)
         line_state = WayPointMission_GetState();
         if(line_state != 0)
         {
-            printf("wp_test st=%u seg=%u p[%d,%d,%d] t[%d,%d,%d] line[%d,%d,%d] pid_r[%d,%d] body[%d,%d] vz=%d yaw=%d ok[%u,%u,%u]\r\n",
+            printf("wp_test st=%s(%u) seg=%u p[%d,%d,%d] t[%d,%d,%d] line[%d,%d,%d] pid_r[%d,%d] body[%d,%d] vz=%d yaw=%d ok[%u,%u,%u] land=%u\r\n",
+                   UserTask_StateName(user_task_state),
                    user_task_state,
                    user_task_segment_id,
                    line_state->current_x,
@@ -175,7 +274,8 @@ static void UserTask_PublishVelocity(const Radar_Cmd_Vel *cmd)
                    (s16)(cmd->yaw_x100 / 100),
                    user_task_fc_state.alt_stable,
                    user_task_fc_state.center_stable,
-                   user_task_fc_state.yaw_stable);
+                   user_task_fc_state.yaw_stable,
+                   user_task_land_low_count);
         }
     }
 #endif
@@ -186,6 +286,52 @@ static void UserTask_PublishZeroVelocity(void)
     Radar_Cmd_Vel cmd = {0};
 
     UserTask_PublishVelocity(&cmd);
+}
+
+static void UserTask_ClearStableState(void)
+{
+    user_task_fc_state.alt_stable = 0U;
+    user_task_fc_state.center_stable = 0U;
+    user_task_fc_state.yaw_stable = 0U;
+}
+
+static void UserTask_ResetLandDetect(void)
+{
+    user_task_land_low_count = 0U;
+    user_task_last_land_pos_update_cnt = radar_pos_update_cnt;
+}
+
+static void UserTask_ClearStopDetect(void)
+{
+    user_task_switch_bad_count = 0U;
+    user_task_radar_bad_count = 0U;
+}
+
+static u8 UserTask_LandHeightReached(void)
+{
+    s16 z_x100;
+
+    if(user_task_last_land_pos_update_cnt == radar_pos_update_cnt)
+    {
+        return 0U;
+    }
+
+    user_task_last_land_pos_update_cnt = radar_pos_update_cnt;
+    z_x100 = Pos16_of_Radar.pos_data.z_x100;
+
+    if(z_x100 <= USER_TASK_LAND_COMPLETE_Z_X100)
+    {
+        if(user_task_land_low_count < USER_TASK_LAND_COMPLETE_COUNT)
+        {
+            user_task_land_low_count++;
+        }
+    }
+    else
+    {
+        user_task_land_low_count = 0U;
+    }
+
+    return (user_task_land_low_count >= USER_TASK_LAND_COMPLETE_COUNT) ? 1U : 0U;
 }
 
 static u8 UserTask_LoadTestWayPoints(void)
@@ -222,16 +368,16 @@ static u8 UserTask_LoadTestWayPoints(void)
     return Add_WayPoint(test_points, count) ? 1U : 0U;
 }
 
-static void UserTask_ResetMission(void)
+static void UserTask_ResetMission(const char *reason)
 {
-    user_task_state = USER_TASK_STATE_IDLE;
+    UserTask_SetState(USER_TASK_STATE_IDLE, reason);
     user_task_active = 0U;
     user_task_segment_id = 0U;
     user_task_target_point.x = 0;
     user_task_target_point.y = 0;
-    user_task_fc_state.alt_stable = 0U;
-    user_task_fc_state.center_stable = 0U;
-    user_task_fc_state.yaw_stable = 0U;
+    UserTask_ClearStableState();
+    UserTask_ResetLandDetect();
+    UserTask_ClearStopDetect();
     WayPointMission_Reset();
 }
 
@@ -253,7 +399,7 @@ static void UserTask_StartMission(void)
     WayPointMission_Reset();
     if(UserTask_LoadTestWayPoints() == 0U)
     {
-        UserTask_ResetMission();
+        UserTask_ResetMission("no_waypoint");
         return;
     }
 
@@ -271,25 +417,25 @@ static void UserTask_StartMission(void)
 
     user_task_active = 1U;
     user_task_segment_id = 1U;
-    user_task_state = USER_TASK_STATE_TAKEOFF;
-    user_task_fc_state.alt_stable = 0U;
-    user_task_fc_state.center_stable = 0U;
-    user_task_fc_state.yaw_stable = 0U;
+    UserTask_SetState(USER_TASK_STATE_TAKEOFF, "start");
+    UserTask_ClearStableState();
+    UserTask_ResetLandDetect();
+    UserTask_ClearStopDetect();
     UserTask_PublishZeroVelocity();
 
 #if USER_TASK_DEBUG_ENABLE
-    printf("wp_test start dry=1 home[%d,%d] z=%d points[%d,%d][%d,%d]\r\n",
+    printf("wp_evt start home[%d,%d] z=%d points=%u land_approach=%d land_done_z=%d descend=%d\r\n",
            user_task_takeoff_x,
            user_task_takeoff_y,
            USER_TASK_TAKEOFF_Z_X100,
-           (s16)(user_task_takeoff_x + USER_TASK_GROUND_TEST_X_X100),
-           user_task_takeoff_y,
-           (s16)(user_task_takeoff_x - USER_TASK_GROUND_TEST_X_X100),
-           user_task_takeoff_y);
+           USER_TASK_TEST_POINT_COUNT,
+           USER_TASK_LAND_APPROACH_Z_X100,
+           USER_TASK_LAND_COMPLETE_Z_X100,
+           USER_TASK_LAND_DESCEND_SPEED);
 #endif
 }
 
-static void UserTask_StopMission(void)
+static void UserTask_StopMission(const char *reason)
 {
     if(user_task_active == 0U)
     {
@@ -298,7 +444,7 @@ static void UserTask_StopMission(void)
 
     UserTask_PublishZeroVelocity();
     PointNavigation_Stop();
-    UserTask_ResetMission();
+    UserTask_ResetMission(reason);
 }
 
 static void UserTask_RunTakeoff(void)
@@ -324,7 +470,7 @@ static void UserTask_RunTakeoff(void)
 
     if(user_task_fc_state.alt_stable != 0U)
     {
-        user_task_state = USER_TASK_STATE_LOAD_POINT;
+        UserTask_SetState(USER_TASK_STATE_LOAD_POINT, "takeoff_ok");
     }
 }
 
@@ -332,16 +478,16 @@ static void UserTask_LoadNextPoint(void)
 {
     if(WayPointEmpty() != 0U)
     {
-        user_task_state = USER_TASK_STATE_HOLD_LAST;
+        user_task_segment_id++;
+        UserTask_ClearStableState();
+        UserTask_SetState(USER_TASK_STATE_RETURN_HOME, "waypoint_empty");
         return;
     }
 
     user_task_target_point = WayPointTake();
     user_task_segment_id++;
-    user_task_fc_state.alt_stable = 0U;
-    user_task_fc_state.center_stable = 0U;
-    user_task_fc_state.yaw_stable = 0U;
-    user_task_state = USER_TASK_STATE_FLY_LINE;
+    UserTask_ClearStableState();
+    UserTask_SetState(USER_TASK_STATE_FLY_LINE, "load_point");
 }
 
 static void UserTask_RunLine(void)
@@ -369,7 +515,7 @@ static void UserTask_RunLine(void)
        user_task_fc_state.center_stable != 0U &&
        user_task_fc_state.yaw_stable != 0U)
     {
-        user_task_state = USER_TASK_STATE_LOAD_POINT;
+        UserTask_SetState(USER_TASK_STATE_LOAD_POINT, "line_ok");
     }
 }
 
@@ -395,16 +541,119 @@ static void UserTask_HoldLastPoint(void)
     }
 }
 
+static void UserTask_RunReturnHome(void)
+{
+    Radar_Cmd_Vel cmd;
+
+    PointNavigation_SetTarget(user_task_takeoff_x,
+                              user_task_takeoff_y,
+                              USER_TASK_TAKEOFF_Z_X100,
+                              user_task_target_yaw);
+
+    if(WayPointMission_UpdateLineTarget(user_task_takeoff_x,
+                                        user_task_takeoff_y,
+                                        USER_TASK_TAKEOFF_Z_X100,
+                                        user_task_target_yaw,
+                                        user_task_segment_id,
+                                        &user_task_fc_state,
+                                        user_task_stable,
+                                        &cmd) != 0U)
+    {
+        UserTask_PublishVelocity(&cmd);
+    }
+
+    if(user_task_fc_state.alt_stable != 0U &&
+       user_task_fc_state.center_stable != 0U &&
+       user_task_fc_state.yaw_stable != 0U)
+    {
+        user_task_segment_id++;
+        UserTask_ClearStableState();
+        UserTask_SetState(USER_TASK_STATE_LAND_APPROACH, "home_ok");
+    }
+}
+
+static void UserTask_RunLandApproach(void)
+{
+    Radar_Cmd_Vel cmd;
+
+    PointNavigation_SetTarget(user_task_takeoff_x,
+                              user_task_takeoff_y,
+                              USER_TASK_LAND_APPROACH_Z_X100,
+                              user_task_target_yaw);
+
+    if(WayPointMission_UpdateLineTarget(user_task_takeoff_x,
+                                        user_task_takeoff_y,
+                                        USER_TASK_LAND_APPROACH_Z_X100,
+                                        user_task_target_yaw,
+                                        user_task_segment_id,
+                                        &user_task_fc_state,
+                                        user_task_stable,
+                                        &cmd) != 0U)
+    {
+        UserTask_PublishVelocity(&cmd);
+    }
+
+    if(user_task_fc_state.alt_stable != 0U &&
+       user_task_fc_state.center_stable != 0U &&
+       user_task_fc_state.yaw_stable != 0U)
+    {
+        user_task_segment_id++;
+        UserTask_ClearStableState();
+        UserTask_ResetLandDetect();
+        UserTask_SetState(USER_TASK_STATE_LAND_DESCEND, "land_approach_ok");
+    }
+}
+
+static void UserTask_RunLandDescend(void)
+{
+    Radar_Cmd_Vel cmd;
+
+    PointNavigation_SetTarget(user_task_takeoff_x,
+                              user_task_takeoff_y,
+                              USER_TASK_LAND_APPROACH_Z_X100,
+                              user_task_target_yaw);
+
+    if(WayPointMission_UpdateLineTarget(user_task_takeoff_x,
+                                        user_task_takeoff_y,
+                                        USER_TASK_LAND_APPROACH_Z_X100,
+                                        user_task_target_yaw,
+                                        user_task_segment_id,
+                                        &user_task_fc_state,
+                                        user_task_stable,
+                                        &cmd) != 0U)
+    {
+        cmd.vz_x100 = USER_TASK_LAND_DESCEND_SPEED;
+        UserTask_PublishVelocity(&cmd);
+    }
+
+    if(UserTask_LandHeightReached() != 0U)
+    {
+        UserTask_PublishZeroVelocity();
+        PointNavigation_Stop();
+        RC_MotorForceLock();
+        UserTask_SetState(USER_TASK_STATE_LANDED, "land_height_ok");
+    }
+}
+
+static void UserTask_RunLanded(void)
+{
+    UserTask_PublishZeroVelocity();
+    PointNavigation_Stop();
+    RC_MotorForceLock();
+}
+
 void UserTask_Init(void)
 {
     WayPointFifoInit();
     WayPointMission_Init();
-    UserTask_ResetMission();
+    UserTask_ResetMission("init");
     user_task_initialized = 1U;
 }
 
 void UserTask_Update(void)
 {
+    const char *not_ready_reason;
+
     if(user_task_initialized == 0U)
     {
         UserTask_Init();
@@ -412,18 +661,59 @@ void UserTask_Update(void)
 
     if(UserTask_SwitchRequested() == 0U)
     {
-        UserTask_StopMission();
-        return;
+        if(user_task_active == 0U)
+        {
+            return;
+        }
+
+        if(user_task_switch_bad_count < USER_TASK_SWITCH_STOP_COUNT)
+        {
+            user_task_switch_bad_count++;
+        }
+
+        if(user_task_switch_bad_count >= USER_TASK_SWITCH_STOP_COUNT)
+        {
+            UserTask_StopMission("switch_off");
+            return;
+        }
+    }
+    else
+    {
+        user_task_switch_bad_count = 0U;
     }
 
 #if USER_TASK_GROUND_TEST_ENABLE
     RC_MotorForceLock();
 #endif
 
-    if(UserTask_SystemReady() == 0U || UserTask_RadarDataHealthy() == 0U)
+    not_ready_reason = UserTask_NotReadyReason();
+    if(not_ready_reason != 0)
     {
-        UserTask_StopMission();
+        UserTask_StopMission(not_ready_reason);
         return;
+    }
+
+    if(UserTask_RadarDataHealthy() == 0U)
+    {
+        if(user_task_active == 0U)
+        {
+            return;
+        }
+
+        if(user_task_radar_bad_count < USER_TASK_RADAR_STOP_COUNT)
+        {
+            user_task_radar_bad_count++;
+        }
+
+        if(user_task_radar_bad_count >= USER_TASK_RADAR_STOP_COUNT)
+        {
+            UserTask_StopMission("radar_unhealthy");
+            return;
+        }
+    }
+    else
+    {
+        user_task_radar_bad_count = 0U;
     }
 
     if(user_task_active == 0U)
@@ -445,6 +735,22 @@ void UserTask_Update(void)
 
         case USER_TASK_STATE_FLY_LINE:
             UserTask_RunLine();
+            break;
+
+        case USER_TASK_STATE_RETURN_HOME:
+            UserTask_RunReturnHome();
+            break;
+
+        case USER_TASK_STATE_LAND_APPROACH:
+            UserTask_RunLandApproach();
+            break;
+
+        case USER_TASK_STATE_LAND_DESCEND:
+            UserTask_RunLandDescend();
+            break;
+
+        case USER_TASK_STATE_LANDED:
+            UserTask_RunLanded();
             break;
 
         case USER_TASK_STATE_HOLD_LAST:
