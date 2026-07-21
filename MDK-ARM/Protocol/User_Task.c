@@ -10,11 +10,12 @@
 
 #define USER_TASK_SENSOR_TIMEOUT_MS      300U
 #define USER_TASK_TAKEOFF_Z_X100         50
-#define USER_TASK_LAND_APPROACH_Z_X100   25
+#define USER_TASK_LAND_APPROACH_Z_X100   40
 #define USER_TASK_LAND_DESCEND_SPEED     (-6)
 #define USER_TASK_LAND_COMPLETE_Z_X100   8
 #define USER_TASK_LAND_COMPLETE_COUNT    20U
-#define USER_TASK_TEST_POINT_COUNT       1U
+#define USER_TASK_AUTO_LOCK_ON_LAND      (0U)
+#define USER_TASK_TEST_POINT_COUNT       3U
 #define USER_TASK_GROUND_TEST_X_X100     50
 #define USER_TASK_DEBUG_ENABLE           (0U)
 #define USER_TASK_DEBUG_PERIOD_MS        200U
@@ -56,6 +57,7 @@ static u8 user_task_last_land_pos_update_cnt;
 static u8 user_task_switch_bad_count;
 static u8 user_task_radar_bad_count;
 
+#if USER_TASK_DEBUG_ENABLE
 static const char *UserTask_StateName(UserTaskState_e state)
 {
     switch(state)
@@ -91,6 +93,7 @@ static const char *UserTask_StateName(UserTaskState_e state)
             return "UNKNOWN";
     }
 }
+#endif
 
 static void UserTask_SetState(UserTaskState_e next_state, const char *reason)
 {
@@ -307,6 +310,7 @@ static void UserTask_ClearStopDetect(void)
     user_task_radar_bad_count = 0U;
 }
 
+#if USER_TASK_AUTO_LOCK_ON_LAND
 static u8 UserTask_LandHeightReached(void)
 {
     s16 z_x100;
@@ -333,6 +337,7 @@ static u8 UserTask_LandHeightReached(void)
 
     return (user_task_land_low_count >= USER_TASK_LAND_COMPLETE_COUNT) ? 1U : 0U;
 }
+#endif
 
 static u8 UserTask_LoadTestWayPoints(void)
 {
@@ -626,6 +631,7 @@ static void UserTask_RunLandDescend(void)
         UserTask_PublishVelocity(&cmd);
     }
 
+#if USER_TASK_AUTO_LOCK_ON_LAND
     if(UserTask_LandHeightReached() != 0U)
     {
         UserTask_PublishZeroVelocity();
@@ -633,6 +639,7 @@ static void UserTask_RunLandDescend(void)
         RC_MotorForceLock();
         UserTask_SetState(USER_TASK_STATE_LANDED, "land_height_ok");
     }
+#endif
 }
 
 static void UserTask_RunLanded(void)

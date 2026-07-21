@@ -3,8 +3,7 @@
 
 #define SBUS_FRAME_LEN 25
 #define SBUS_HEADER 0x0F
-#define SBUS_END_BYTE 0x00
-#define SBUS_TIMEOUT_MS 300
+#define SBUS_TIMEOUT_MS 500
 #define SBUS_FRAME_LOST_BIT 0x04
 #define SBUS_FAILSAFE_BIT 0x08
 #define SBUS_FRAME_LOST_LIMIT 10U
@@ -14,6 +13,12 @@
 
 volatile u32 sbus_dma_byte_cnt = 0;
 volatile u32 sbus_frame_cnt = 0;
+volatile u32 sbus_bad_end_cnt = 0;
+volatile u32 sbus_failsafe_cnt = 0;
+volatile u32 sbus_lost_flag_cnt = 0;
+volatile u32 sbus_timeout_cnt = 0;
+volatile u32 sbus_uart_error_cnt = 0;
+volatile u32 sbus_resync_cnt = 0;
 
 rc_channel_un Channel_of_rc;
 realtime_ctrl_un ctrl_of_realtime;
@@ -29,6 +34,42 @@ static u16 sbus_dma_pos;
 static u32 sbus_last_update_ms;
 static u8 sbus_signal_lost = 1;
 static u8 sbus_lost_frame_count;
+
+static u8 SbusEndByteValid(u8 end_byte)
+{
+    return (end_byte == 0x00U || (end_byte & 0x0FU) == 0x04U) ? 1U : 0U;
+}
+
+static void SbusResyncFromFrame(void)
+{
+    u8 next_header = SBUS_FRAME_LEN;
+
+    for(u8 i = 1U; i < SBUS_FRAME_LEN; i++)
+    {
+        if(sbus_frame[i] == SBUS_HEADER)
+        {
+            next_header = i;
+            break;
+        }
+    }
+
+    if(next_header < SBUS_FRAME_LEN)
+    {
+        u8 remain = (u8)(SBUS_FRAME_LEN - next_header);
+
+        for(u8 i = 0U; i < remain; i++)
+        {
+            sbus_frame[i] = sbus_frame[next_header + i];
+        }
+
+        sbus_index = remain;
+        sbus_resync_cnt++;
+    }
+    else
+    {
+        sbus_index = 0U;
+    }
+}
 
 //限幅函数
 static s16 LimitS16(s16 value, s16 min, s16 max)
@@ -85,11 +126,13 @@ static void SbusDecodeFrame(const u8 frame[SBUS_FRAME_LEN])
     flags = frame[23];
     if((flags & SBUS_FAILSAFE_BIT) != 0U)
     {
+        sbus_failsafe_cnt++;
         sbus_lost_frame_count = SBUS_FRAME_LOST_LIMIT;
         sbus_signal_lost = 1;
     }
     else if((flags & SBUS_FRAME_LOST_BIT) != 0U)
     {
+        sbus_lost_flag_cnt++;
         if(sbus_lost_frame_count < SBUS_FRAME_LOST_LIMIT)
         {
             sbus_lost_frame_count++;
@@ -121,12 +164,16 @@ static void SbusPushByte(u8 data)
 
     if(sbus_index >= SBUS_FRAME_LEN)
     {
-        if(sbus_frame[0] == SBUS_HEADER && sbus_frame[SBUS_FRAME_LEN - 1] == SBUS_END_BYTE)
+        if(sbus_frame[0] == SBUS_HEADER && SbusEndByteValid(sbus_frame[SBUS_FRAME_LEN - 1]) != 0U)
         {
             SbusDecodeFrame(sbus_frame);
+            sbus_index = 0U;
         }
-
-        sbus_index = 0;
+        else
+        {
+            sbus_bad_end_cnt++;
+            SbusResyncFromFrame();
+        }
     }
 }
 
@@ -228,6 +275,11 @@ void DrvRcInputTask(float dt)
 
     if((HAL_GetTick() - sbus_last_update_ms) > SBUS_TIMEOUT_MS)
     {
+        if(sbus_signal_lost == 0U || sbus_lost_frame_count < SBUS_FRAME_LOST_LIMIT)
+        {
+            sbus_timeout_cnt++;
+        }
+
         sbus_lost_frame_count = SBUS_FRAME_LOST_LIMIT;
         sbus_signal_lost = 1;
     }
@@ -254,6 +306,7 @@ void RemoteControl_UartErrorCallback(UART_HandleTypeDef *huart)
 {
     if(huart->Instance == UART8)
     {
+        sbus_uart_error_cnt++;
         sbus_signal_lost = 1;
         SbusStartDmaReceive();
     }

@@ -70,6 +70,12 @@ extern realtime_ctrl_un failsafe_ctrl_cmd;
 extern SwitchStateSet Switch_sta_st;
 extern volatile u32 sbus_dma_byte_cnt;
 extern volatile u32 sbus_frame_cnt;
+extern volatile u32 sbus_bad_end_cnt;
+extern volatile u32 sbus_failsafe_cnt;
+extern volatile u32 sbus_lost_flag_cnt;
+extern volatile u32 sbus_timeout_cnt;
+extern volatile u32 sbus_uart_error_cnt;
+extern volatile u32 sbus_resync_cnt;
 
 void RemoteControl_InitDefault(void);
 void DrvRcInputInit(void);
