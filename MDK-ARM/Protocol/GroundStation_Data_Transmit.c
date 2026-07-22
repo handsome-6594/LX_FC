@@ -23,6 +23,7 @@ Batt_Curr_Height_Process_un un_of_Batt_Height_Process;
 Vel_Fu_un un_of_Vel_Fu;
 
 static u8 rx_Buffer[256];
+static u8 send_buffer[50];
 static u8 Data_cnt = 0;
 
 Point No_Fly_Zone[3] = {0};
@@ -355,5 +356,46 @@ static void H743_To_GD_Buffer(u8 frame_num, frame_pack *pack)
 }
 
 //H743:我要组帧发给地面站了
+static u8 H743_To_GD_FrameSend(u8 frame_num, Data_Frame *frame)
+{
+    frame_pack pack;
+    u8 check_sum1 = 0;
+    u8 check_sum2 = 0;
 
+    if(frame == NULL)
+    {
+        return 0;
+    }
+    FramePack_Init(&pack, send_buffer, sizeof(send_buffer));
+    FramePack_PutByte(&pack, 0XAA);
+    FramePack_PutByte(&pack, frame->Addr);
+    FramePack_PutByte(&pack, frame_num);
+    FramePack_PutByte(&pack, 0);
+
+    H743_To_GD_Buffer(frame_num, &pack);
+    send_buffer[3] = (u8)(pack.len - 4);
+
+    for(u16 i = 0; i < pack.len; i++)
+    {
+        check_sum1 += send_buffer[i];
+        check_sum2 += check_sum1;
+    }
+
+    FramePack_PutByte(&pack, check_sum1);
+    FramePack_PutByte(&pack, check_sum2);
+
+    if(GD_Data.wait_ack != 0 && frame_num == 0XE0)
+    {
+        GD_Data.checksum_ok.ID = frame_num;
+        GD_Data.checksum_ok.SC = check_sum1;
+        GD_Data.checksum_ok.AC = check_sum2;
+    }
+    return H743_To_GD_Send_Data(send_buffer, pack.len);
+
+}
+
+static u8 H743_To_GD_Send_Data(u8 *data, u8 length)
+{
+    return 
+}
 

@@ -383,6 +383,13 @@ u8 DrvUart4SendBuf(unsigned char *DataToSend, uint8_t data_num)
     return 0;
 }
 
+//Uart6 连接地面站数传
+
+//接收
+#define GD_RXBufferSize 5
+#define GD_RXFIFOBufferSize (GD_RXBufferSize * 25)
+
+u8 GD_RxBuffer[GD]
 
 
 
