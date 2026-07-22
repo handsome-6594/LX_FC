@@ -50,6 +50,8 @@ extern Point No_Fly_Zone[3];
 extern Batt_Curr_Height_Process_un un_of_Batt_Height_Process;
 extern Vel_Fu_un un_of_Vel_Fu;
 
+void GD_Data_Init(void);
+void H743_Data_Receive_From_GroundStation(u8 data);
+void H743_Data_Transmit_To_GD_Check(void);
 
 #endif
-

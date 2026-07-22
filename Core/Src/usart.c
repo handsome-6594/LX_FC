@@ -1043,6 +1043,10 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
   {
     DrvUart4_RxEventCallback(Size);
   }
+  else if(huart->Instance == USART6)
+  {
+    DrvUart6_RxEventCallback(Size);
+  }
 }
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
@@ -1050,6 +1054,10 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
   if(huart->Instance == UART4)
   {
     DrvUart4_TxCpltCallback();
+  }
+  else if(huart->Instance == USART6)
+  {
+    DrvUart6_TxCpltCallback();
   }
 }
 
@@ -1066,6 +1074,10 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
   else if(huart->Instance == UART4)
   {
     DrvUart4_ErrorCallback();
+  }
+  else if(huart->Instance == USART6)
+  {
+    DrvUart6_ErrorCallback();
   }
   else
   {

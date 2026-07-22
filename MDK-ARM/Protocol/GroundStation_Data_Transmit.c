@@ -1,6 +1,10 @@
 #include "GroundStation_Data_Transmit.h"
 #include "Freq_Detector.h"
 #include "Remote_Control.h"
+#include "Drv_Uart.h"
+#include "Drv_adc.h"
+#include "FC_State.h"
+#include "Of_Radar_Fusion.h"
 
 
 #define Radar_Pos_Frame_NUM 0x01
@@ -28,9 +32,26 @@ static u8 Data_cnt = 0;
 
 Point No_Fly_Zone[3] = {0};
 
+static void H743_Received_Data_From_GroundStation_Analysis(const u8 *data, u8 len);
+void GD_CK_Back(u8 dest_addr, check_ack *ck);
+void GD_PAR_Back(u8 dest_addr, param *par);
+static void H743_To_GD_Buffer(u8 frame_num, frame_pack *pack);
+static u8 H743_To_GD_FrameSend(u8 frame_num, Data_Frame *frame);
+static u8 H743_To_GD_Send_Data(u8 *data, u8 length);
+static void GD_Check_To_Send(u8 frame_num);
+static void GD_FramePack_PutVolatileBuf(frame_pack *pack, const volatile u8 *data, u16 len);
+
 static inline u16 GD_GetU16Le(const u8 *data)
 {
     return (u16)data[0] | ((u16)data[1] << 8);
+}
+
+static void GD_FramePack_PutVolatileBuf(frame_pack *pack, const volatile u8 *data, u16 len)
+{
+    for(u16 i = 0; i < len; i++)
+    {
+        FramePack_PutByte(pack, data[i]);
+    }
 }
 
 void GD_Data_Init(void)
@@ -275,14 +296,14 @@ static void H743_To_GD_Buffer(u8 frame_num, frame_pack *pack)
     {
         case Radar_Pos_Frame_NUM:
         {
-            FramePack_PutBuf(pack, Pos16_of_Radar.byte_data, 6);
+            GD_FramePack_PutVolatileBuf(pack, Pos16_of_Radar.byte_data, 6);
             u16 temp_freq_x10 = (u16)(FreqDetector_GetFrequency(&JN_freq_detector[Data_stream_Radar_Pos]) * 10);
             FramePack_U16(pack, temp_freq_x10);
         }
         break;
         case Radar_Speed_Frame_NUM:
         {
-            FramePack_PutBuf(pack, Speed_of_Radar.byte_data, 6);
+            GD_FramePack_PutVolatileBuf(pack, Speed_of_Radar.byte_data, 6);
             u16 temp_freq_x10 = (u16)(FreqDetector_GetFrequency(&JN_freq_detector[Data_stream_Radar_Speed]) * 10);
             FramePack_U16(pack, temp_freq_x10);
         }
@@ -296,7 +317,7 @@ static void H743_To_GD_Buffer(u8 frame_num, frame_pack *pack)
         break;
         case Radar_YAW_Frame_NUM:
         {
-            FramePack_PutBuf(pack, Radar_YAW_tar_un.byte_data, 2);
+            GD_FramePack_PutVolatileBuf(pack, Radar_YAW_tar_un.byte_data, 2);
             u16 temp_freq_x10 = (u16)(FreqDetector_GetFrequency(&JN_freq_detector[Data_stream_Radar_Yaw]) * 10);
             FramePack_U16(pack, temp_freq_x10);
         }
@@ -310,6 +331,10 @@ static void H743_To_GD_Buffer(u8 frame_num, frame_pack *pack)
         break;
         case Batt_Curr_Height_Process_Frame_NUM:
         {
+            un_of_Batt_Height_Process.st_data.Volt_x100 = Drv_AdcGetBatVolt100();
+            un_of_Batt_Height_Process.st_data.Curr_x100 = Drv_AdcGetBatCurr100();
+            un_of_Batt_Height_Process.st_data.ALT_FU = (s32)ex_sensor.distance_general.distance_data.distance;
+            un_of_Batt_Height_Process.st_data.Process = state.mode;
             FramePack_PutBuf(pack, un_of_Batt_Height_Process.byte_data, 9);
 
         }
@@ -323,6 +348,9 @@ static void H743_To_GD_Buffer(u8 frame_num, frame_pack *pack)
         break;
         case VEL_FU_FRAME_NUM:
         {
+            un_of_Vel_Fu.st_data.vx_x100 = ex_sensor.vel_general.vel_data.velocity_cmps[0];
+            un_of_Vel_Fu.st_data.vy_x100 = ex_sensor.vel_general.vel_data.velocity_cmps[1];
+            un_of_Vel_Fu.st_data.vz_x100 = ex_sensor.vel_general.vel_data.velocity_cmps[2];
             FramePack_PutBuf(pack, un_of_Vel_Fu.byte_data, sizeof(un_of_Vel_Fu));
             u16 temp_freq_x10 = (u16)(FreqDetector_GetFrequency(&JN_freq_detector[Data_stream_Vel_Fu]) * 10);
             FramePack_U16(pack, temp_freq_x10);
@@ -396,6 +424,44 @@ static u8 H743_To_GD_FrameSend(u8 frame_num, Data_Frame *frame)
 
 static u8 H743_To_GD_Send_Data(u8 *data, u8 length)
 {
-    return 
+    return DrvUart6SendBuf(data, length);
 }
 
+//检查这个ID号的数据该不该发   该发就发，不该发看是不是周期发送的
+static void GD_Check_To_Send(u8 frame_num)
+{
+    if(GD_Data.fun[frame_num].wait_to_send)
+    {
+        if(H743_To_GD_FrameSend(frame_num, &GD_Data.fun[frame_num]))
+        {
+            GD_Data.fun[frame_num].wait_to_send = 0;
+        }
+    }
+    else if(GD_Data.fun[frame_num].fre_ms != 0)
+    {
+        if(GD_Data.fun[frame_num].count_mstime >= GD_Data.fun[frame_num].fre_ms)
+        {
+            GD_Data.fun[frame_num].count_mstime = 1;
+            (void)H743_To_GD_FrameSend(frame_num, &GD_Data.fun[frame_num]);
+        }
+        else
+        {
+            GD_Data.fun[frame_num].count_mstime++;
+        }
+    }
+}
+
+void H743_Data_Transmit_To_GD_Check(void)
+{
+    GD_Check_To_Send(0x00); // ack frame
+    GD_Check_To_Send(Radar_Pos_Frame_NUM); // battery voltage/current data
+    GD_Check_To_Send(Radar_Speed_Frame_NUM); // external velocity sensor data
+    GD_Check_To_Send(JN_Cam_Frame_NUM); // external distance sensor data
+    GD_Check_To_Send(Radar_YAW_Frame_NUM); // remote control data
+    GD_Check_To_Send(Motor_Speed_Frame_NUM); // realtime control target
+    GD_Check_To_Send(Batt_Curr_Height_Process_Frame_NUM); // cmd frame
+    GD_Check_To_Send(0xE2); // param back/write ack
+    GD_Check_To_Send(0xE0);
+    GD_Check_To_Send(Cmd_Vel_Frame_NUM);
+    GD_Check_To_Send(VEL_FU_FRAME_NUM);
+}

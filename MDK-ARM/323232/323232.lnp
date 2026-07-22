@@ -72,6 +72,7 @@
 "323232\radar_position.o"
 "323232\optical_flow_sensor.o"
 "323232\user_task.o"
+"323232\groundstation_data_transmit.o"
 "323232\freq_detector.o"
 "323232\map_update.o"
 "323232\adaptive_pid.o"

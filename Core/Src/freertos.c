@@ -46,6 +46,7 @@
 #include "Point_Navigation.h"
 #include "User_Task.h"
 #include "Drv_Menu.h"
+#include "GroundStation_Data_Transmit.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -103,6 +104,17 @@ const osThreadAttr_t jetsonRxTask_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
 };
 
+osThreadId_t groundStationTaskHandle;
+const osThreadAttr_t groundStationTask_attributes = {
+  .name = "Ground_ST",
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+
+osSemaphoreId_t GD_UART_Binary_SemaphoreHandle;
+const osSemaphoreAttr_t GD_UART_Binary_Semaphore_attributes = {
+  .name = "GD_UART_Binary_Semaphore"
+};
 // /* Definitions for uartTestTask */
 // osThreadId_t uartTestTaskHandle;
 // const osThreadAttr_t uartTestTask_attributes = {
@@ -120,6 +132,7 @@ void StartpwmPrintTask(void *argument);
 void Startuart4LXTask(void *argument);
 void StartOpticalFlowTask(void *argument);
 void StartJetsonRxTask(void *argument);
+void StartGroundStationTask(void *argument);
 // void StartUartTestTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -141,6 +154,7 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   //OLED_i2c_Binary_SemaphoreHandle = osSemaphoreNew(1, 0, NULL);
   LX_UART_Binary_SemaphoreHandle = osSemaphoreNew(1, 0, NULL);
+  GD_UART_Binary_SemaphoreHandle = osSemaphoreNew(1, 0, &GD_UART_Binary_Semaphore_attributes);
   /* USER CODE END RTOS_SEMAPHORES */
 
   /* USER CODE BEGIN RTOS_TIMERS */
@@ -159,9 +173,10 @@ void MX_FREERTOS_Init(void) {
   opticalFlowTaskHandle = osThreadNew(StartOpticalFlowTask, NULL, &opticalFlowTask_attributes);
 
   jetsonRxTaskHandle = osThreadNew(StartJetsonRxTask, NULL, &jetsonRxTask_attributes);
+
+  groundStationTaskHandle = osThreadNew(StartGroundStationTask, NULL, &groundStationTask_attributes);
   /* creation of uartTestTask */
   // uartTestTaskHandle = osThreadNew(StartUartTestTask, NULL, &uartTestTask_attributes);
-
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -302,5 +317,22 @@ void StartJetsonRxTask(void *argument)
     JN_Data_Transmit_Check();
   }
 }
-/* USER CODE END Application */
 
+void StartGroundStationTask(void *argument)
+{
+  (void)argument;
+
+  GD_Data_Init();
+  DrvUart6_Fifo_Init();
+  DrvUart6_RegisterRxByteHandler(H743_Data_Receive_From_GroundStation);
+  DrvUart6_RegisterNotifyTask(xTaskGetCurrentTaskHandle());
+  DrvUart6_Receive_Enable();
+
+  for(;;)
+  {
+    (void)ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(1));
+    drvU6DataCheck();
+    H743_Data_Transmit_To_GD_Check();
+  }
+}
+/* USER CODE END Application */

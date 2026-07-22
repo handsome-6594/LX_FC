@@ -42,5 +42,14 @@ void DrvUart4_ErrorCallback(void);
 void drvU4DataCheck(void);
 u8 DrvUart4SendBuf(unsigned char *DataToSend, uint8_t data_num);
 
+void DrvUart6_Fifo_Init(void);
+void DrvUart6_Receive_Enable(void);
+void DrvUart6_RegisterRxByteHandler(DrvUartByteHandler handler);
+void DrvUart6_RegisterNotifyTask(TaskHandle_t task_handle);
+void DrvUart6_RxEventCallback(uint16_t size);
+void DrvUart6_ErrorCallback(void);
+void DrvUart6_TxCpltCallback(void);
+void drvU6DataCheck(void);
+u8 DrvUart6SendBuf(unsigned char *DataToSend, uint8_t data_num);
 
 #endif

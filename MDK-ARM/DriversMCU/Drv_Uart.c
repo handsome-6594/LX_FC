@@ -18,8 +18,10 @@ static void DrvUart_NoUse(uint8_t data)
 static DrvUartByteHandler Uart2RxByteHandler = DrvUart_NoUse;
 static DrvUartByteHandler Uart3RxByteHandler = DrvUart_NoUse;
 static DrvUartByteHandler Uart4RxByteHandler = DrvUart_NoUse;
+static DrvUartByteHandler Uart6RxByteHandler = DrvUart_NoUse;
 static TaskHandle_t Uart2NotifyTaskHandle = NULL;
 static TaskHandle_t Uart3NotifyTaskHandle = NULL;
+static TaskHandle_t Uart6NotifyTaskHandle = NULL;
 
 //====uart1
 /* 告知连接器不从C库链接使用半主机的函数 */
@@ -387,9 +389,126 @@ u8 DrvUart4SendBuf(unsigned char *DataToSend, uint8_t data_num)
 
 //接收
 #define GD_RXBufferSize 5
-#define GD_RXFIFOBufferSize (GD_RXBufferSize * 25)
+#define GD_RXFIFOBufferSize 256
+#define GD_TX_TIMEOUT_MS 20
 
-u8 GD_RxBuffer[GD]
+u8 GD_RxBuffer[GD_RXBufferSize];
+u8 GD_RXFIFOBuffer[GD_RXFIFOBufferSize];
+FIFO_Type   GD_fifo;
+FIFO_Type   *pGDfifo = NULL;
+
+void DrvUart6_Receive_Enable(void)
+{
+    (void)HAL_UARTEx_ReceiveToIdle_IT(&huart6, GD_RxBuffer, GD_RXBufferSize);
+}
+void DrvUart6_Fifo_Init(void)
+{
+    pGDfifo = &GD_fifo;
+    FIFO_Init(pGDfifo, GD_RXFIFOBuffer, sizeof(u8), GD_RXFIFOBufferSize); 
+}
+void DrvUart6_RegisterRxByteHandler(DrvUartByteHandler handler)
+{
+    Uart6RxByteHandler = (handler != NULL) ? handler : DrvUart_NoUse;
+}
+void DrvUart6_RegisterNotifyTask(TaskHandle_t task_handle)
+{
+    Uart6NotifyTaskHandle = task_handle;
+}
+void DrvUart6_RxEventCallback(uint16_t size)
+{
+    BaseType_t highTaskWoken = pdFALSE;
+
+    if(pGDfifo != NULL && size <= GD_RXBufferSize)
+    {
+        FIFO_Add(pGDfifo, GD_RxBuffer, size);
+    }
+
+    DrvUart6_Receive_Enable();
+
+    if(Uart6NotifyTaskHandle != NULL)
+    {
+        vTaskNotifyGiveFromISR(Uart6NotifyTaskHandle, &highTaskWoken);
+        portYIELD_FROM_ISR(highTaskWoken);
+    }
+}
+void DrvUart6_ErrorCallback(void)
+{
+    BaseType_t highTaskWoken = pdFALSE;
+
+    DrvUart6_Receive_Enable();
+
+    if(Uart6NotifyTaskHandle != NULL)
+    {
+        vTaskNotifyGiveFromISR(Uart6NotifyTaskHandle, &highTaskWoken);
+        portYIELD_FROM_ISR(highTaskWoken);
+    }
+}
+void drvU6DataCheck(void)
+{
+    u8 data_temp;
+    u8 has_data;
+
+    if(pGDfifo == NULL)
+    {
+        return;
+    }
+    for(;;)
+    {
+        taskENTER_CRITICAL();
+        has_data = FIFO_GetOne(pGDfifo, &data_temp);
+        taskEXIT_CRITICAL();
+
+        if(!has_data)
+        {
+            break;
+        }
+
+        Uart6RxByteHandler(data_temp);
+    }
+}
+
+
+//发送部分
+extern osSemaphoreId_t GD_UART_Binary_SemaphoreHandle;
+u8 DrvUart6SendBuf(unsigned char *DataToSend, uint8_t data_num)
+{
+    if(DataToSend == NULL || data_num == 0)
+    {
+        return 0;
+    }
+
+    if(GD_UART_Binary_SemaphoreHandle == NULL)
+    {
+        return 0;
+    }
+
+    while(xSemaphoreTake(GD_UART_Binary_SemaphoreHandle, 0) == pdPASS)
+    {
+    }
+
+    if(HAL_UART_Transmit_DMA(&huart6, DataToSend, data_num) != HAL_OK)
+    {
+        return 0;
+    }
+
+    if(xSemaphoreTake(GD_UART_Binary_SemaphoreHandle, pdMS_TO_TICKS(GD_TX_TIMEOUT_MS)) != pdPASS)
+    {
+        return 0;
+    }
+
+    return 1;
+}
+void DrvUart6_TxCpltCallback(void)
+{
+    BaseType_t highTaskWoken = pdFALSE;
+
+    if(GD_UART_Binary_SemaphoreHandle != NULL)
+    {
+        xSemaphoreGiveFromISR(GD_UART_Binary_SemaphoreHandle, &highTaskWoken);
+        portYIELD_FROM_ISR(highTaskWoken);
+    }
+}
+
 
 
 

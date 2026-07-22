@@ -79,3 +79,5 @@
 323232\freertos.o: .\Algorithm\Point_Navigation.h
 323232\freertos.o: .\Protocol\User_Task.h
 323232\freertos.o: .\DriversMCU\Drv_Menu.h
+323232\freertos.o: .\Protocol\GroundStation_Data_Transmit.h
+323232\freertos.o: .\Algorithm\Map_Update.h
