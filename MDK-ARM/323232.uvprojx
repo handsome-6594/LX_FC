@@ -884,6 +884,16 @@
               <FileType>5</FileType>
               <FilePath>.\Protocol\User_Task.h</FilePath>
             </File>
+            <File>
+              <FileName>GroundStation_Data_Transmit.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Protocol\GroundStation_Data_Transmit.c</FilePath>
+            </File>
+            <File>
+              <FileName>GroundStation_Data_Transmit.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Protocol\GroundStation_Data_Transmit.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
