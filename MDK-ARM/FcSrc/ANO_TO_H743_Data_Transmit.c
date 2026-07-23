@@ -67,7 +67,7 @@ void Data_Init(void)
     
     //通用测距传感器信息
     Data.fun[0x34].Addr = 0xFF;
-    Data.fun[0x34].fre_ms = 0;
+    Data.fun[0x34].fre_ms = 20;
     Data.fun[0x34].count_mstime = 0;
 
     //实时控制帧（也就是期望飞机角度的目标值，发给凌霄imu，由凌霄imu处理）
@@ -575,16 +575,26 @@ static void LX_Check_To_Send(u8 frame_num)
 }
 
 //集中在一个函数里看哪个帧需要发送
-void H743_Data_Transmit_Check(void)
+void H743_Data_Transmit_FastCheck(void)
 {
     LX_Check_To_Send(0x00); // ack frame
-    LX_Check_To_Send(0x0D); // battery voltage/current data
     LX_Check_To_Send(0x33); // external velocity sensor data
     LX_Check_To_Send(0x34); // external distance sensor data
+    LX_Check_To_Send(0xE0); // cmd frame
+}
+
+void H743_Data_Transmit_BackgroundCheck(void)
+{
+    LX_Check_To_Send(0x0D); // battery voltage/current data
     LX_Check_To_Send(0x40); // remote control data
     LX_Check_To_Send(0x41); // realtime control target
-    LX_Check_To_Send(0xE0); // cmd frame
     LX_Check_To_Send(0xE2); // param back/write ack
+}
+
+void H743_Data_Transmit_Check(void)
+{
+    H743_Data_Transmit_FastCheck();
+    H743_Data_Transmit_BackgroundCheck();
 }
 
 

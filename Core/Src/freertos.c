@@ -87,6 +87,13 @@ osThreadId_t uart4LXTaskHandle;
 const osThreadAttr_t uart4LXTask_attributes = {
   .name = "uart4LXTask",
   .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityAboveNormal,
+};
+
+osThreadId_t lxControlTaskHandle;
+const osThreadAttr_t lxControlTask_attributes = {
+  .name = "lxControlTask",
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 
@@ -130,6 +137,7 @@ const osSemaphoreAttr_t GD_UART_Binary_Semaphore_attributes = {
 void StartOledTestTask(void *argument);
 void StartpwmPrintTask(void *argument);
 void Startuart4LXTask(void *argument);
+void StartLXControlTask(void *argument);
 void StartOpticalFlowTask(void *argument);
 void StartJetsonRxTask(void *argument);
 void StartGroundStationTask(void *argument);
@@ -169,6 +177,8 @@ void MX_FREERTOS_Init(void) {
   pwmPrintTaskHandle = osThreadNew(StartpwmPrintTask, NULL, &pwmPrintTask_attributes);
 
   uart4LXTaskHandle = osThreadNew(Startuart4LXTask, NULL, &uart4LXTask_attributes);
+
+  lxControlTaskHandle = osThreadNew(StartLXControlTask, NULL, &lxControlTask_attributes);
 
   opticalFlowTaskHandle = osThreadNew(StartOpticalFlowTask, NULL, &opticalFlowTask_attributes);
 
@@ -229,14 +239,29 @@ void StartpwmPrintTask(void *argument)
 void Startuart4LXTask(void *argument)
 {
   (void)argument;
-  uint32_t last_bat_send_ms = 0;
 
   Data_Init();
+  DrvUart4_Fifo_Init();
+  DrvUart4_Receive_Enable();
+
+  for(;;)
+  {
+    drvU4DataCheck();
+    H743_Data_Transmit_FastCheck();
+    H743_Data_Transmit_BackgroundCheck();
+
+    osDelay(1);
+  }
+}
+
+void StartLXControlTask(void *argument)
+{
+  (void)argument;
+  uint32_t last_bat_send_ms = 0;
+
   DrvRcInputInit();
   DrvESCInit();
   DrvAdcInit();
-  DrvUart4_Fifo_Init();
-  DrvUart4_Receive_Enable();
   PointNavigation_Init();
 #if USER_TASK_ENABLE != 0U
   UserTask_Init();
@@ -245,7 +270,6 @@ void Startuart4LXTask(void *argument)
   for(;;)
   {
     DrvRcInputTask(0.001f);
-    drvU4DataCheck();
     RC_Data_Task(0.001f);
 #if USER_TASK_ENABLE != 0U
     UserTask_Update();
@@ -253,7 +277,6 @@ void Startuart4LXTask(void *argument)
     //PointNavigation_TestPointTask();
 #endif
     PointNavigation_Update();
-    H743_Data_Transmit_Check();
 
     if(HAL_GetTick() - last_bat_send_ms >= 100)
     {

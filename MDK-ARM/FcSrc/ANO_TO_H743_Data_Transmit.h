@@ -168,6 +168,8 @@ extern volatile u32 lx_uart4_send40_fail_cnt;
 /////////////////////////////////////////////////////
 
 void H743_Data_Receive(u8 data);
+void H743_Data_Transmit_FastCheck(void);
+void H743_Data_Transmit_BackgroundCheck(void);
 void H743_Data_Transmit_Check(void);
 void Data_Init(void);
 void FramePack_Init(frame_pack *pack, u8 *buf, u16 max_len);

@@ -286,6 +286,7 @@ u8 DrvUart3SendBuf(unsigned char *DataToSend, uint8_t data_num)
 //====uart4 //连接凌霄IMU
 #define LX_RXBufferSize 15
 #define LX_RXFIFOBufferSize (LX_RXBufferSize * 40)
+#define LX_TX_TIMEOUT_MS 5
 
 uint8_t LX_RxBuffer[LX_RXBufferSize];
 uint8_t LX_RxFIFOBuffer[LX_RXFIFOBufferSize];
@@ -372,11 +373,21 @@ u8 DrvUart4SendBuf(unsigned char *DataToSend, uint8_t data_num)
         return 0;
     }
 
+    if(LX_UART_Binary_SemaphoreHandle != NULL)
+    {
+        while(xSemaphoreTake(LX_UART_Binary_SemaphoreHandle, 0) == pdPASS)
+        {
+        }
+    }
+
     if(HAL_UART_Transmit_DMA(&huart4, DataToSend, data_num) == HAL_OK)
     {
         if(LX_UART_Binary_SemaphoreHandle != NULL)
         {
-            xSemaphoreTake(LX_UART_Binary_SemaphoreHandle, portMAX_DELAY);
+            if(xSemaphoreTake(LX_UART_Binary_SemaphoreHandle, pdMS_TO_TICKS(LX_TX_TIMEOUT_MS)) != pdPASS)
+            {
+                return 0;
+            }
         }
 
         return 1;
